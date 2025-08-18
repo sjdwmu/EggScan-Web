@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EggScan 文献分析工具</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">EggScan 文献分析工具</h1>
+            <p class="text-gray-500 mt-2">上传PDF文件，自动提取关键信息并生成Excel报告</p>
+        </div>
+
+        <form id="uploadForm" class="space-y-4">
+            <div>
+                <label for="pdfs" class="block text-sm font-medium text-gray-700 mb-1">选择PDF文件</label>
+                <p class="text-gray-500 text-xs mb-2">可以同时选择多个文件进行批量处理。</p>
+                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500 transition-colors duration-200">
+                    <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L40 32" />
+                        </svg>
+                        <div class="flex text-sm text-gray-600">
+                            <label for="pdfs" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                <span>点击上传文件</span>
+                                <input id="pdfs" name="pdfs" type="file" class="sr-only" multiple accept=".pdf">
+                            </label>
+                            <p class="pl-1">或将文件拖放到此处</p>
+                        </div>
+                        <p id="fileNames" class="text-xs text-gray-500 mt-2"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label for="api_key" class="block text-sm font-medium text-gray-700 mb-1">DeepSeek API 密钥</label>
+                <p class="text-gray-500 text-xs mb-2">密钥格式为 `sk-` 开头的字符串，不会被保存。</p>
+                <input type="password" id="api_key" name="api_key" placeholder="例如: sk-123456789..." class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2">
+            </div>
+
+            <div>
+                <button type="submit" id="submitBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200" disabled>
+                    <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    开始分析并下载Excel
+                </button>
+            </div>
+            <div id="statusMessage" class="text-sm text-center mt-4"></div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const pdfInput = document.getElementById('pdfs');
+        const apiKeyInput = document.getElementById('api_key');
+        const submitBtn = document.getElementById('submitBtn');
+        const fileNamesDisplay = document.getElementById('fileNames');
+        const statusMessage = document.getElementById('statusMessage');
+        const spinner = document.getElementById('spinner');
+
+        function updateButtonState() {
+            const files = pdfInput.files.length > 0;
+            const apiKey = apiKeyInput.value.trim().startsWith('sk-');
+            submitBtn.disabled = !(files && apiKey);
+        }
+
+        pdfInput.addEventListener('change', () => {
+            const files = pdfInput.files;
+            if (files.length > 0) {
+                fileNamesDisplay.textContent = `已选择 ${files.length} 个文件`;
+            } else {
+                fileNamesDisplay.textContent = '';
+            }
+            updateButtonState();
+        });
+
+        apiKeyInput.addEventListener('input', updateButtonState);
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            statusMessage.textContent = '正在上传和分析，请稍候...';
+            statusMessage.classList.remove('text-red-500');
+            statusMessage.classList.add('text-gray-600');
+
+            const formData = new FormData();
+            for (const file of pdfInput.files) {
+                formData.append('pdfs', file);
+            }
+            formData.append('api_key', apiKeyInput.value);
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'EggScan_Result.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    statusMessage.textContent = '✅ 分析完成，Excel文件已下载！';
+                    statusMessage.classList.remove('text-red-500');
+                    statusMessage.classList.add('text-green-600');
+                } else {
+                    const errorData = await response.json();
+                    statusMessage.textContent = `❌ 发生错误: ${errorData.error || '未知错误'}`;
+                    statusMessage.classList.remove('text-green-600');
+                    statusMessage.classList.add('text-red-500');
+                }
+            } catch (error) {
+                statusMessage.textContent = `❌ 请求失败: ${error.message}`;
+                statusMessage.classList.remove('text-green-600');
+                statusMessage.classList.add('text-red-500');
+            } finally {
+                submitBtn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
