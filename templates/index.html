@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EggScan 文献智能分析系统 v2.0</title>
-    <!-- antd: 【【【新增】】】 添加了浏览器标签页图标 (Favicon) -->
+    <!-- antd: 【中文注释】添加了浏览器标签页图标 (Favicon) -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23F59E0B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22c-5 0-9-4.5-9-10 0-2.5 1-5 2.5-6.5C7 4 8.5 2 12 2c3.5 0 5 2 6.5 3.5C20 7 21 9.5 21 12c0 5.5-4 10-9 10z'/%3E%3Cpath d='m10 14 2-2 2 2'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* antd: 使用更适合中文阅读的字体 */
+        /* antd: 【中文注释】使用更适合中文阅读的字体 */
         body { font-family: 'Noto Sans SC', sans-serif; }
-        /* antd: 自定义加载动画 */
+        /* antd: 【中文注释】自定义加载动画 */
         .loader {
             border: 5px solid #f3f3f3;
             border-top: 5px solid #5B9BD5;
@@ -24,7 +24,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* antd: 优化文件输入框样式 */
+        /* antd: 【中文注释】优化文件输入框样式 */
         input[type="file"]::file-selector-button {
             background-color: #5B9BD5;
             color: white;
@@ -37,15 +37,25 @@
         input[type="file"]::file-selector-button:hover {
             background-color: #4A88C3;
         }
+        /* antd: 【【【新增】】】进度条样式 */
+        .progress-bar {
+            background-color: #e9ecef;
+            border-radius: 0.375rem;
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            background-color: #5B9BD5;
+            height: 100%;
+            transition: width 0.4s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
     <div class="container mx-auto p-4 md:p-8 max-w-3xl">
         <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
             
-            <!-- antd: 标题和Logo -->
+            <!-- antd: 【中文注释】标题和Logo -->
             <div class="text-center mb-8">
-                <!-- antd: 【【【修改】】】 将错误的SVG图标替换为正确的“破壳彩蛋”图标 -->
                 <h1 class="text-4xl font-bold text-gray-800 flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block h-10 w-10 mr-3 text-amber-500">
                         <path d="M12 22c-5 0-9-4.5-9-10 0-2.5 1-5 2.5-6.5C7 4 8.5 2 12 2c3.5 0 5 2 6.5 3.5C20 7 21 9.5 21 12c0 5.5-4 10-9 10z"/>
@@ -58,7 +68,7 @@
 
             <form id="upload-form" class="space-y-8">
                 
-                <!-- antd: 步骤1: 上传文件 -->
+                <!-- antd: 【中文注释】步骤1: 上传文件 -->
                 <div>
                     <label class="text-lg font-semibold text-gray-700 block mb-3">步骤 1: 上传PDF文献</label>
                     <input type="file" id="pdfs" name="pdfs" multiple required
@@ -66,7 +76,7 @@
                     <p class="text-xs text-gray-400 mt-2">可以一次选择多个文件。最大总上传大小: 100MB。</p>
                 </div>
 
-                <!-- antd: 步骤2: 输入API密钥 -->
+                <!-- antd: 【中文注释】步骤2: 输入API密钥 -->
                 <div>
                     <label for="apiKey" class="text-lg font-semibold text-gray-700 block mb-3">步骤 2: 输入API密钥</label>
                     <input type="password" id="apiKey" name="apiKey" required
@@ -78,7 +88,7 @@
                     </div>
                 </div>
 
-                <!-- antd: 步骤3: 选择分析模式 -->
+                <!-- antd: 【中文注释】步骤3: 选择分析模式 -->
                 <div>
                     <label class="text-lg font-semibold text-gray-700 block mb-3">步骤 3: 选择分析模式</label>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -100,7 +110,7 @@
                     </div>
                 </div>
 
-                <!-- antd: 自定义模式的输入框，默认隐藏 -->
+                <!-- antd: 【中文注释】自定义模式的输入框，默认隐藏 -->
                 <div id="custom-prompt-container" class="hidden">
                     <label for="customPrompt" class="text-lg font-semibold text-gray-700 block mb-3">自定义分析要求</label>
                     <textarea id="customPrompt" name="customPrompt" rows="8"
@@ -111,7 +121,7 @@
 请使用【字段名】：内容 的格式。"></textarea>
                 </div>
 
-                <!-- antd: 步骤4: 语言和提交 -->
+                <!-- antd: 【中文注释】步骤4: 语言和提交 -->
                 <div class="flex flex-col md:flex-row items-center gap-6">
                     <div>
                         <label for="language" class="text-lg font-semibold text-gray-700 block mb-2">步骤 4: 输出语言</label>
@@ -127,14 +137,17 @@
                 </div>
             </form>
             
-            <!-- antd: 加载状态 -->
+            <!-- antd: 【【【修改】】】加载状态区域更新，增加了进度条 -->
             <div id="loader" class="hidden text-center mt-8 space-y-4">
                 <div class="loader mx-auto"></div>
-                <p id="status-text" class="text-gray-600 font-medium">正在上传并分析文献，请耐心等待...</p>
+                <p id="status-text" class="text-gray-600 font-medium">正在初始化...</p>
+                <div class="progress-bar w-full h-2.5">
+                    <div id="progress-bar-inner" class="progress-bar-inner w-0"></div>
+                </div>
                 <p class="text-sm text-gray-400">(大型或扫描版PDF可能需要几分钟时间)</p>
             </div>
             
-            <!-- antd: 错误提示 -->
+            <!-- antd: 【中文注释】错误提示 -->
             <div id="error-message" class="hidden mt-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
                 <p class="font-bold">分析出错</p>
                 <p id="error-text"></p>
@@ -143,7 +156,7 @@
     </div>
 
     <script>
-        // antd: 核心交互逻辑
+        // antd: 【中文注释】核心交互逻辑
         const form = document.getElementById('upload-form');
         const submitBtn = document.getElementById('submit-btn');
         const loader = document.getElementById('loader');
@@ -155,15 +168,18 @@
         const customPromptContainer = document.getElementById('custom-prompt-container');
         const customPromptTextarea = document.getElementById('customPrompt');
         const modeRadios = document.querySelectorAll('input[name="mode"]');
+        
+        // antd: 【【【新增】】】获取进度条元素
+        const progressBarInner = document.getElementById('progress-bar-inner');
 
-        // antd: 从LocalStorage加载已保存的API Key
+        // antd: 【中文注释】从LocalStorage加载已保存的API Key
         const savedApiKey = localStorage.getItem('eggscan_api_key');
         if (savedApiKey) {
             apiKeyInput.value = savedApiKey;
             saveKeyCheckbox.checked = true;
         }
 
-        // antd: 保存或清除API Key
+        // antd: 【中文注释】保存或清除API Key
         saveKeyCheckbox.addEventListener('change', () => {
             if (saveKeyCheckbox.checked) {
                 localStorage.setItem('eggscan_api_key', apiKeyInput.value);
@@ -177,7 +193,7 @@
             }
         });
 
-        // antd: 监听模式选择，控制自定义输入框的显示
+        // antd: 【中文注释】监听模式选择，控制自定义输入框的显示
         const defaultCustomPrompt = `请从以下角度分析这篇文献：\n\n【研究主题】：文章的核心研究问题是什么？\n【理论框架】：使用了什么理论基础或概念框架？\n【方法创新】：在研究方法上有什么创新或特色？\n【数据质量】：数据来源、样本量、统计分析的可靠性如何？\n【关键发现】：最重要的3个研究发现是什么？\n【实践意义】：对临床实践或政策制定有什么指导意义？\n【争议与讨论】：存在哪些争议点或值得进一步讨论的问题？\n【引用价值】：这篇文章最值得引用的观点或数据是什么？\n\n请用【字段名】：内容 的格式清晰输出。`;
         
         modeRadios.forEach(radio => {
@@ -193,15 +209,13 @@
             });
         });
         
-        // antd: 处理表单提交
+        // antd: 【中文注释】处理表单提交
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // antd: 准备数据
             const formData = new FormData(form);
             const files = document.getElementById('pdfs').files;
             
-            // antd: 检查文件和API Key
             if (files.length === 0) {
                 showError('请至少选择一个PDF文件。');
                 return;
@@ -211,14 +225,20 @@
                 return;
             }
 
-            // antd: 开始加载状态
+            // antd: 【【【修改】】】启动加载状态和进度条模拟
             submitBtn.disabled = true;
             submitBtn.textContent = '分析中...';
             loader.classList.remove('hidden');
             errorMessage.classList.add('hidden');
+            
+            // antd: 【中文注释】重置进度条和状态
+            updateProgress(0, '正在初始化...');
 
             try {
-                // antd: 发送请求到后端
+                // antd: 【中文注释】模拟上传进度
+                await simulateProgress(files.length);
+                
+                // antd: 【中文注释】真实发送请求到后端
                 const response = await fetch('/analyze', {
                     method: 'POST',
                     body: formData,
@@ -229,8 +249,8 @@
                     throw new Error(errorData.error || '服务器返回了一个未知错误。');
                 }
                 
-                // antd: 处理文件下载
-                statusText.textContent = '分析完成，正在准备下载...';
+                // antd: 【中文注释】处理文件下载
+                updateProgress(100, '分析完成！正在准备下载...');
                 const blob = await response.blob();
                 const header = response.headers.get('Content-Disposition');
                 const parts = header.split(';');
@@ -255,14 +275,51 @@
 
             } catch (error) {
                 showError(error.message);
+                updateProgress(0, '出现错误'); // antd: 出错时重置进度条
             } finally {
-                // antd: 恢复UI状态
+                // antd: 【中文注释】恢复UI状态
                 submitBtn.disabled = false;
                 submitBtn.textContent = '开始分析';
-                loader.classList.add('hidden');
-                statusText.textContent = '正在上传并分析文献，请耐心等待...';
+                // antd: 【中文注释】成功后让用户看到100%的进度条，延迟隐藏
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+                }, 1500);
             }
         });
+
+        // antd: 【【【新增】】】更新进度条和状态文本的函数
+        function updateProgress(percentage, text) {
+            progressBarInner.style.width = `${percentage}%`;
+            statusText.textContent = text;
+        }
+
+        // antd: 【【【新增】】】模拟分析进度的函数
+        function simulateProgress(fileCount) {
+            return new Promise(resolve => {
+                let currentProgress = 0;
+                const uploadIncrement = 15; // antd: 上传阶段占15%
+                const analysisIncrement = 80 / fileCount; // antd: 分析阶段占80%，均分给每个文件
+                const finalizationIncrement = 5; // antd: 生成报告占5%
+
+                // antd: 1. 上传阶段
+                updateProgress(uploadIncrement, `正在上传 ${fileCount} 个文件...`);
+                
+                // antd: 2. 分析阶段 (逐个文件模拟)
+                let currentFile = 1;
+                const analysisInterval = setInterval(() => {
+                    if (currentFile > fileCount) {
+                        clearInterval(analysisInterval);
+                        // antd: 3. 生成报告阶段
+                        updateProgress(uploadIncrement + 80 + finalizationIncrement, '正在生成Excel报告...');
+                        resolve(); // antd: 模拟完成，通知主程序继续
+                        return;
+                    }
+                    currentProgress = uploadIncrement + (currentFile * analysisIncrement);
+                    updateProgress(currentProgress, `正在分析第 ${currentFile} / ${fileCount} 篇文献...`);
+                    currentFile++;
+                }, 1500); // antd: 假设每1.5秒分析一个文件
+            });
+        }
 
         function showError(message) {
             errorText.textContent = message;
