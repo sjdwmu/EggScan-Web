@@ -3,324 +3,462 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EggScan 文献智能分析系统 v2.0</title>
-    <!-- antd: 【中文注释】添加了浏览器标签页图标 (Favicon) -->
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23F59E0B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22c-5 0-9-4.5-9-10 0-2.5 1-5 2.5-6.5C7 4 8.5 2 12 2c3.5 0 5 2 6.5 3.5C20 7 21 9.5 21 12c0 5.5-4 10-9 10z'/%3E%3Cpath d='m10 14 2-2 2 2'/%3E%3C/svg%3E">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>EggScan 文献智能分析系统</title>
     <style>
-        /* antd: 【中文注释】使用更适合中文阅读的字体 */
-        body { font-family: 'Noto Sans SC', sans-serif; }
-        /* antd: 【中文注释】自定义加载动画 */
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #5B9BD5;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
-        /* antd: 【中文注释】优化文件输入框样式 */
-        input[type="file"]::file-selector-button {
-            background-color: #5B9BD5;
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 36px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .logo .icon {
+            font-size: 40px;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .api-input {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .mode-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .mode-card {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .mode-card:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .mode-card.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .mode-card .icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.3s;
         }
-        input[type="file"]::file-selector-button:hover {
-            background-color: #4A88C3;
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
         }
-        /* antd: 【中文注释】进度条样式 */
-        .progress-bar {
-            background-color: #e9ecef;
-            border-radius: 0.375rem;
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* 进度显示 */
+        .progress-container {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+        
+        .progress-container.active {
+            display: block;
+        }
+        
+        .progress-bar-wrapper {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
             overflow: hidden;
+            margin-bottom: 15px;
         }
-        .progress-bar-inner {
-            background-color: #5B9BD5;
+        
+        .progress-bar {
             height: 100%;
-            transition: width 0.4s ease-in-out;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .progress-messages {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .progress-message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #667eea;
+            padding-left: 10px;
+        }
+        
+        .download-btn {
+            display: none;
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .download-btn.active {
+            display: block;
+        }
+        
+        .download-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .error-message {
+            color: #f44336;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .error-message.active {
+            display: block;
+        }
+        
+        .tips {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff8e1;
+            border-radius: 10px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .tips h3 {
+            color: #f57c00;
+            margin-bottom: 10px;
+        }
+        
+        .tips ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .tips li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .tips li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #f57c00;
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="container mx-auto p-4 md:p-8 max-w-3xl">
-        <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
-            
-            <!-- antd: 【中文注释】标题和Logo -->
-            <div class="text-center mb-8">
-                <h1 class="text-4xl font-bold text-gray-800 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block h-10 w-10 mr-3 text-amber-500">
-                        <path d="M12 22c-5 0-9-4.5-9-10 0-2.5 1-5 2.5-6.5C7 4 8.5 2 12 2c3.5 0 5 2 6.5 3.5C20 7 21 9.5 21 12c0 5.5-4 10-9 10z"/>
-                        <path d="m10 14 2-2 2 2"/>
-                    </svg>
-                    EggScan
-                </h1>
-                <p class="text-lg text-gray-500 mt-2">文献智能分析系统 v2.0 · 云端版</p>
-            </div>
-
-            <form id="upload-form" class="space-y-8">
-                
-                <!-- antd: 【中文注释】步骤1: 上传文件 -->
-                <div>
-                    <label class="text-lg font-semibold text-gray-700 block mb-3">步骤 1: 上传PDF文献</label>
-                    <input type="file" id="pdfs" name="pdfs" multiple required
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
-                    <p class="text-xs text-gray-400 mt-2">可以一次选择多个文件。最大总上传大小: 100MB。</p>
-                </div>
-
-                <!-- antd: 【中文注释】步骤2: 输入API密钥 -->
-                <div>
-                    <label for="apiKey" class="text-lg font-semibold text-gray-700 block mb-3">步骤 2: 输入API密钥</label>
-                    <input type="password" id="apiKey" name="apiKey" required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                           placeholder="请输入您的 DeepSeek API Key (sk-...)">
-                    <div class="flex items-center mt-2">
-                        <input type="checkbox" id="saveKey" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <label for="saveKey" class="ml-2 text-sm text-gray-600">在浏览器中保存密钥</label>
-                    </div>
-                </div>
-
-                <!-- antd: 【中文注释】步骤3: 选择分析模式 -->
-                <div>
-                    <label class="text-lg font-semibold text-gray-700 block mb-3">步骤 3: 选择分析模式</label>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label class="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:ring-2 has-[:checked]:ring-blue-300">
-                            <input type="radio" name="mode" value="经典模式" class="sr-only" checked>
-                            <span class="font-bold text-gray-800">📜 经典五段式</span>
-                            <p class="text-sm text-gray-500 mt-1">快速构建文章框架，提取背景、方法、结果等。</p>
-                        </label>
-                        <label class="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:ring-2 has-[:checked]:ring-blue-300">
-                            <input type="radio" name="mode" value="精读模式" class="sr-only">
-                            <span class="font-bold text-gray-800">📚 精读模式</span>
-                            <p class="text-sm text-gray-500 mt-1">深度批判性分析，获取研究启发。</p>
-                        </label>
-                        <label class="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:ring-2 has-[:checked]:ring-blue-300">
-                            <input type="radio" name="mode" value="自定义模式" class="sr-only">
-                            <span class="font-bold text-gray-800">🎯 自定义模式</span>
-                            <p class="text-sm text-gray-500 mt-1">按需定制分析维度。</p>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- antd: 【中文注释】自定义模式的输入框，默认隐藏 -->
-                <div id="custom-prompt-container" class="hidden">
-                    <label for="customPrompt" class="text-lg font-semibold text-gray-700 block mb-3">自定义分析要求</label>
-                    <textarea id="customPrompt" name="customPrompt" rows="8"
-                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                              placeholder="请输入您的分析要求，例如：
-【研究主题】：...
-【方法创新】：...
-请使用【字段名】：内容 的格式。"></textarea>
-                </div>
-
-                <!-- antd: 【中文注释】步骤4: 语言和提交 -->
-                <div class="flex flex-col md:flex-row items-center gap-6">
-                    <div>
-                        <label for="language" class="text-lg font-semibold text-gray-700 block mb-2">步骤 4: 输出语言</label>
-                        <select id="language" name="language" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="中文">中文</option>
-                            <option value="English">English</option>
-                        </select>
-                    </div>
-                    <button type="submit" id="submit-btn"
-                            class="w-full md:w-auto bg-blue-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 ease-in-out transform hover:scale-105">
-                        开始分析
-                    </button>
-                </div>
-            </form>
-            
-            <!-- antd: 【中文注释】加载状态区域 -->
-            <div id="loader" class="hidden text-center mt-8 space-y-4">
-                <div class="loader mx-auto"></div>
-                <p id="status-text" class="text-gray-600 font-medium">正在初始化...</p>
-                <div class="progress-bar w-full h-2.5">
-                    <div id="progress-bar-inner" class="progress-bar-inner w-0"></div>
-                </div>
-                <p class="text-sm text-gray-400">(大型或扫描版PDF可能需要几分钟时间)</p>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1><span class="icon">🔬</span> EggScan</h1>
+        </div>
+        <p class="subtitle">文献智能分析系统 v3.0 • 云端版</p>
+        
+        <form id="analysisForm">
+            <div class="form-group">
+                <label>步骤 1: 上传PDF文献</label>
+                <input type="file" name="pdfs" multiple accept=".pdf" required>
+                <small style="color: #666;">支持批量上传，最大100MB</small>
             </div>
             
-            <!-- antd: 【中文注释】错误提示 -->
-            <div id="error-message" class="hidden mt-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
-                <p class="font-bold">分析出错</p>
-                <p id="error-text"></p>
+            <div class="form-group">
+                <label>步骤 2: 输入API密钥</label>
+                <input type="password" name="apiKey" class="api-input" 
+                       placeholder="sk-xxxxxxxxxxxxxxxx" required>
+                <small style="color: #666;">
+                    在 <a href="https://platform.deepseek.com/" target="_blank">DeepSeek</a> 
+                    获取API密钥
+                </small>
             </div>
+            
+            <div class="form-group">
+                <label>步骤 3: 选择分析模式</label>
+                <div class="mode-cards">
+                    <div class="mode-card" data-mode="泛读模式">
+                        <div class="icon">📊</div>
+                        <div>泛读模式</div>
+                        <small>快速筛选</small>
+                    </div>
+                    <div class="mode-card selected" data-mode="精读模式">
+                        <div class="icon">📚</div>
+                        <div>精读模式</div>
+                        <small>深度分析</small>
+                    </div>
+                </div>
+                <input type="hidden" name="mode" value="精读模式">
+            </div>
+            
+            <div class="form-group">
+                <label>步骤 4: 输出语言</label>
+                <select name="language">
+                    <option value="中文">中文</option>
+                    <option value="English">English</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">
+                开始分析
+            </button>
+        </form>
+        
+        <!-- 进度显示区域 -->
+        <div class="progress-container" id="progressContainer">
+            <h3>分析进度</h3>
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+            </div>
+            <div class="progress-messages" id="progressMessages"></div>
+        </div>
+        
+        <!-- 下载按钮 -->
+        <button class="download-btn" id="downloadBtn">
+            📥 下载分析报告
+        </button>
+        
+        <!-- 错误提示 -->
+        <div class="error-message" id="errorMessage"></div>
+        
+        <!-- 使用提示 -->
+        <div class="tips">
+            <h3>💡 使用提示</h3>
+            <ul>
+                <li>泛读模式适合快速筛选大量文献</li>
+                <li>精读模式适合深度分析重要文献</li>
+                <li>处理时间取决于文献数量和长度</li>
+                <li>建议每次处理不超过10篇文献</li>
+            </ul>
         </div>
     </div>
-
+    
     <script>
-        // antd: 【中文注释】核心交互逻辑
-        const form = document.getElementById('upload-form');
-        const submitBtn = document.getElementById('submit-btn');
-        const loader = document.getElementById('loader');
-        const statusText = document.getElementById('status-text');
-        const errorMessage = document.getElementById('error-message');
-        const errorText = document.getElementById('error-text');
-        const apiKeyInput = document.getElementById('apiKey');
-        const saveKeyCheckbox = document.getElementById('saveKey');
-        const customPromptContainer = document.getElementById('custom-prompt-container');
-        const customPromptTextarea = document.getElementById('customPrompt');
-        const modeRadios = document.querySelectorAll('input[name="mode"]');
-        
-        const progressBarInner = document.getElementById('progress-bar-inner');
-
-        // antd: 【中文注释】从LocalStorage加载已保存的API Key
-        const savedApiKey = localStorage.getItem('eggscan_api_key');
-        if (savedApiKey) {
-            apiKeyInput.value = savedApiKey;
-            saveKeyCheckbox.checked = true;
-        }
-
-        // antd: 【中文注释】保存或清除API Key
-        saveKeyCheckbox.addEventListener('change', () => {
-            if (saveKeyCheckbox.checked) {
-                localStorage.setItem('eggscan_api_key', apiKeyInput.value);
-            } else {
-                localStorage.removeItem('eggscan_api_key');
-            }
-        });
-        apiKeyInput.addEventListener('input', () => {
-            if (saveKeyCheckbox.checked) {
-                localStorage.setItem('eggscan_api_key', apiKeyInput.value);
-            }
-        });
-
-        // antd: 【中文注释】监听模式选择，控制自定义输入框的显示
-        const defaultCustomPrompt = `请从以下角度分析这篇文献：\n\n【研究主题】：文章的核心研究问题是什么？\n【理论框架】：使用了什么理论基础或概念框架？\n【方法创新】：在研究方法上有什么创新或特色？\n【数据质量】：数据来源、样本量、统计分析的可靠性如何？\n【关键发现】：最重要的3个研究发现是什么？\n【实践意义】：对临床实践或政策制定有什么指导意义？\n【争议与讨论】：存在哪些争议点或值得进一步讨论的问题？\n【引用价值】：这篇文章最值得引用的观点或数据是什么？\n\n请用【字段名】：内容 的格式清晰输出。`;
-        
-        modeRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.value === '自定义模式') {
-                    customPromptContainer.classList.remove('hidden');
-                    if (customPromptTextarea.value.trim() === '') {
-                        customPromptTextarea.value = defaultCustomPrompt;
-                    }
-                } else {
-                    customPromptContainer.classList.add('hidden');
-                }
+        // 模式选择
+        document.querySelectorAll('.mode-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                document.querySelector('input[name="mode"]').value = this.dataset.mode;
             });
         });
         
-        // antd: 【中文注释】处理表单提交
-        form.addEventListener('submit', async (e) => {
+        // 表单提交
+        let currentTaskId = null;
+        let statusCheckInterval = null;
+        
+        document.getElementById('analysisForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
-            const formData = new FormData(form);
-            const files = document.getElementById('pdfs').files;
             
-            if (files.length === 0) {
-                showError('请至少选择一个PDF文件。');
-                return;
-            }
-            if (!apiKeyInput.value.startsWith('sk-')) {
-                showError('请输入一个有效的DeepSeek API密钥。');
-                return;
-            }
-
+            const submitBtn = document.getElementById('submitBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            // 重置状态
             submitBtn.disabled = true;
-            submitBtn.textContent = '分析中...';
-            loader.classList.remove('hidden');
-            errorMessage.classList.add('hidden');
+            submitBtn.textContent = '正在提交...';
+            progressContainer.classList.add('active');
+            errorMessage.classList.remove('active');
+            downloadBtn.classList.remove('active');
             
-            updateProgress(0, '正在初始化...');
-
+            // 准备表单数据
+            const formData = new FormData(this);
+            
             try {
-                await simulateProgress(files.length);
-                
+                // 提交任务
                 const response = await fetch('/analyze', {
                     method: 'POST',
-                    body: formData,
+                    body: formData
                 });
-
+                
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || '服务器返回了一个未知错误。');
+                    const error = await response.json();
+                    throw new Error(error.error || '提交失败');
                 }
                 
-                updateProgress(100, '分析完成！正在准备下载...');
-                const blob = await response.blob();
-                const header = response.headers.get('Content-Disposition');
-                const parts = header.split(';');
-                let filename = 'EggScan_Report.xlsx';
-                for (const part of parts) {
-                    if (part.trim().startsWith('filename=')) {
-                        filename = part.substring(part.indexOf('=') + 1).trim();
-                        filename = decodeURIComponent(filename.replace(/['"]/g, ''));
-                        break;
-                    }
-                }
+                const result = await response.json();
+                currentTaskId = result.task_id;
                 
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-
+                submitBtn.textContent = '分析中...';
+                
+                // 开始轮询状态
+                statusCheckInterval = setInterval(checkTaskStatus, 2000);
+                
             } catch (error) {
-                // antd: 【【【修改】】】针对NetworkError提供更具体的帮助信息
-                let friendlyErrorMessage = '分析失败，请稍后重试。';
-                if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
-                    friendlyErrorMessage = '网络连接错误。\n这很可能是因为分析时间过长导致连接超时。\n\n您可以尝试以下操作：\n1. 检查您的网络连接。\n2. 尝试一次只分析一个文件，特别是对于扫描版或非常大的PDF。\n3. 如果在服务器部署，请检查Web服务器（如Gunicorn）的超时设置。';
-                } else {
-                    friendlyErrorMessage = error.message;
-                }
-                showError(friendlyErrorMessage);
-                updateProgress(0, '出现错误');
-            } finally {
+                errorMessage.textContent = '错误: ' + error.message;
+                errorMessage.classList.add('active');
                 submitBtn.disabled = false;
                 submitBtn.textContent = '开始分析';
-                setTimeout(() => {
-                    loader.classList.add('hidden');
-                }, 1500);
+                progressContainer.classList.remove('active');
             }
         });
-
-        function updateProgress(percentage, text) {
-            progressBarInner.style.width = `${percentage}%`;
-            statusText.textContent = text;
-        }
-
-        function simulateProgress(fileCount) {
-            return new Promise(resolve => {
-                let currentProgress = 0;
-                const uploadIncrement = 15;
-                const analysisIncrement = 80 / fileCount;
-                const finalizationIncrement = 5;
-
-                updateProgress(uploadIncrement, `正在上传 ${fileCount} 个文件...`);
+        
+        // 检查任务状态
+        async function checkTaskStatus() {
+            if (!currentTaskId) return;
+            
+            try {
+                const response = await fetch(`/status/${currentTaskId}`);
+                const status = await response.json();
                 
-                let currentFile = 1;
-                const analysisInterval = setInterval(() => {
-                    if (currentFile > fileCount) {
-                        clearInterval(analysisInterval);
-                        updateProgress(uploadIncrement + 80 + finalizationIncrement, '正在生成Excel报告...');
-                        resolve();
-                        return;
-                    }
-                    currentProgress = uploadIncrement + (currentFile * analysisIncrement);
-                    updateProgress(currentProgress, `正在分析第 ${currentFile} / ${fileCount} 篇文献...`);
-                    currentFile++;
-                }, 1500);
-            });
+                // 更新进度条
+                const progressBar = document.getElementById('progressBar');
+                const progressMessages = document.getElementById('progressMessages');
+                
+                progressBar.style.width = `${status.progress}%`;
+                progressBar.textContent = `${Math.round(status.progress)}%`;
+                
+                // 更新消息
+                progressMessages.innerHTML = '';
+                status.messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'progress-message';
+                    msgDiv.textContent = msg;
+                    progressMessages.appendChild(msgDiv);
+                });
+                progressMessages.scrollTop = progressMessages.scrollHeight;
+                
+                // 检查是否完成
+                if (status.status === 'completed') {
+                    clearInterval(statusCheckInterval);
+                    document.getElementById('submitBtn').disabled = false;
+                    document.getElementById('submitBtn').textContent = '开始分析';
+                    document.getElementById('downloadBtn').classList.add('active');
+                    
+                    // 自动滚动到下载按钮
+                    document.getElementById('downloadBtn').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                } else if (status.status === 'failed') {
+                    clearInterval(statusCheckInterval);
+                    document.getElementById('errorMessage').textContent = '分析失败，请重试';
+                    document.getElementById('errorMessage').classList.add('active');
+                    document.getElementById('submitBtn').disabled = false;
+                    document.getElementById('submitBtn').textContent = '开始分析';
+                }
+                
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
         }
-
-        function showError(message) {
-            // antd: 【【【修改】】】将换行符 \n 替换为 <br> 标签以在HTML中正确显示
-            errorText.innerHTML = message.replace(/\n/g, '<br>');
-            errorMessage.classList.remove('hidden');
-        }
+        
+        // 下载结果
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            if (currentTaskId) {
+                window.location.href = `/download/${currentTaskId}`;
+            }
+        });
     </script>
 </body>
 </html>
-
