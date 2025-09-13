@@ -253,4 +253,38 @@ if __name__ == '__main__':
     # (注释) 在Render等平台上，会使用Gunicorn启动，不会直接运行这里
     # (注释) 但为了本地测试方便，保留app.run
     app.run(host='0.0.0.0', port=5000)
+# 【中文注释】导入Flask相关的库
+from flask import Flask, request, jsonify
 
+app = Flask(__name__)
+
+@app.route('/analyze', methods=['POST'])
+def analyze_documents():
+    # ... 其他代码 ...
+
+    # antd: 【【【请在这里添加下面的调试代码】】】
+    # antd: 【中文注释】从前端表单中获取apiKey
+    api_key = request.form.get('apiKey')
+
+    # antd: 【中文注释】在服务器的控制台/终端打印接收到的key，这是关键！
+    # antd: 为了安全，我们只打印前5位和后4位来确认
+    if api_key:
+        print(f"--- [调试信息] 后端成功接收到API Key: {api_key[:5]}...{api_key[-4:]}")
+    else:
+        print("--- [调试信息] 后端未接收到API Key，为空值！")
+
+    # antd: 【中文注释】确保您在后续代码中，是把这个 api_key 变量传递给了DeepSeek的请求函数
+    # antd: 例如，像这样：
+    # headers = {
+    #     'Authorization': f'Bearer {api_key}',
+    #     'Content-Type': 'application/json'
+    # }
+    # print(f"--- [调试信息] 准备发送给DeepSeek的请求头: {headers}") # 也可以打印请求头确认
+
+    # ... 您处理文献和调用DeepSeek API的其余代码 ...
+
+    # 假设出错
+    # return jsonify({'error': 'API密钥为空或格式不正确'}), 400
+    
+    # ...
+    return "Success" # 临时代替
