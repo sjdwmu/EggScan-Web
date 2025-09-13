@@ -1,12 +1,6 @@
-antd: 这是Flask应用的核心依赖
 Flask
-
-antd: 用于PDF文本提取
 PyMuPDF
-
-antd: 用于调用LLM API
 requests
-
-antd: 用于数据处理和Excel生成
 pandas
 openpyxl
+Flask-Cors
