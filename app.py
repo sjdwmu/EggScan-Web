@@ -300,7 +300,7 @@ def process_pdfs_async(task_id, pdf_files_data, api_key, mode, language, custom_
 @app.route('/')
 def index():
     """渲染主页"""
-    return render_template('index_async.html')
+    return render_template('index.html')
 
 @app.route('/analyze', methods=['POST'])
 def start_analysis():
@@ -399,3 +399,4 @@ def cleanup_old_tasks():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
