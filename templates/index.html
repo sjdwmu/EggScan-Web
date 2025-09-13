@@ -1,140 +1,217 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EggScan 文献分析工具</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+        /* (注释) 为了让页面更美观，这里是一些自定义样式 */
+        body { font-family: 'Inter', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
+        .btn-primary { background-color: #4A90E2; transition: background-color 0.3s ease; }
+        .btn-primary:hover { background-color: #357ABD; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4A90E2; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .checkbox-custom { accent-color: #4A90E2; }
+        /* (注释) 这是三种模式按钮的样式 */
+        .mode-option { padding: 8px 16px; border-radius: 999px; cursor: pointer; transition: all 0.3s; font-weight: 500; border: 2px solid transparent; }
+        .mode-option.active { background-color: #4A90E2; color: white; border-color: #357ABD; box-shadow: 0 4px 14px rgba(74, 144, 226, 0.3); }
+        .mode-option:not(.active) { background-color: #e5e7eb; color: #4b5563; }
+        .mode-option:not(.active):hover { background-color: #d1d5db; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">EggScan 文献分析工具</h1>
-            <p class="text-gray-500 mt-2">上传PDF文件，自动提取关键信息并生成Excel报告</p>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="card w-full max-w-2xl p-8 md:p-12">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">EggScan 文献分析工具</h1>
+            <p class="text-gray-500 mt-2">上传PDF，选择模式，一键生成结构化报告。</p>
         </div>
 
-        <form id="uploadForm" class="space-y-4">
+        <form id="upload-form" class="space-y-6">
+            <!-- (注释) 分析模式选择，升级为按钮样式 -->
             <div>
-                <label for="pdfs" class="block text-sm font-medium text-gray-700 mb-1">选择PDF文件</label>
-                <p class="text-gray-500 text-xs mb-2">可以同时选择多个文件进行批量处理。</p>
-                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500 transition-colors duration-200">
-                    <div class="space-y-1 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L40 32" />
-                        </svg>
-                        <div class="flex text-sm text-gray-600">
-                            <label for="pdfs" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                <span>点击上传文件</span>
-                                <input id="pdfs" name="pdfs" type="file" class="sr-only" multiple accept=".pdf">
-                            </label>
-                            <p class="pl-1">或将文件拖放到此处</p>
-                        </div>
-                        <p id="fileNames" class="text-xs text-gray-500 mt-2"></p>
+                <label class="block text-sm font-medium text-gray-700 mb-2">1. 选择分析模式</label>
+                <div id="mode-selector" class="flex items-center justify-center space-x-2 p-2 border rounded-full bg-gray-100">
+                    <div class="mode-option active" data-mode="泛读模式">泛读</div>
+                    <div class="mode-option" data-mode="精读模式">精读</div>
+                    <div class="mode-option" data-mode="自定义模式">自定义</div>
+                </div>
+                <input type="hidden" name="mode" id="mode-input" value="泛读模式">
+            </div>
+
+            <!-- (注释) 文件上传区域 -->
+            <div>
+                 <label class="block text-sm font-medium text-gray-700 mb-2">2. 选择PDF文件 (可多选)</label>
+                 <div id="drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-400 transition">
+                     <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        <p class="text-sm text-gray-600">点击或拖拽文件到此区域</p>
+                        <p id="file-list" class="text-xs text-gray-500 mt-2"></p>
                     </div>
+                    <input id="pdf-input" name="pdfs" type="file" class="sr-only" multiple accept=".pdf">
                 </div>
             </div>
 
-            <div>
-                <label for="api_key" class="block text-sm font-medium text-gray-700 mb-1">DeepSeek API 密钥</label>
-                <p class="text-gray-500 text-xs mb-2">密钥格式为 `sk-` 开头的字符串，不会被保存。</p>
-                <input type="password" id="api_key" name="api_key" placeholder="例如: sk-123456789..." class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2">
+            <!-- (注释) 模式专属选项区域 -->
+            <div id="options-area">
+                <!-- 精读选项 (默认隐藏) -->
+                <div id="deep-read-options" class="hidden space-y-4">
+                    <label class="block text-sm font-medium text-gray-700">3. (精读) 选择分析维度</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 border rounded-md bg-gray-50">
+                        <label class="flex items-center space-x-2"><input type="checkbox" name="fields" value="研究背景" class="checkbox-custom" checked> <span class="text-sm">研究背景</span></label>
+                        <label class="flex items-center space-x-2"><input type="checkbox" name="fields" value="研究方法" class="checkbox-custom" checked> <span class="text-sm">研究方法</span></label>
+                        <label class="flex items-center space-x-2"><input type="checkbox" name="fields" value="核心结果" class="checkbox-custom" checked> <span class="text-sm">核心结果</span></label>
+                        <label class="flex items-center space-x-2"><input type="checkbox" name="fields" value="结论" class="checkbox-custom" checked> <span class="text-sm">结论</span></label>
+                        <label class="flex items-center space-x-2"><input type="checkbox" name="fields" value="创新点" class="checkbox-custom"> <span class="text-sm">创新点</span></label>
+                        <label class="flex items-center space-x-2"><input type="checkbox" name="fields" value="不足之处" class="checkbox-custom"> <span class="text-sm">不足之处</span></label>
+                    </div>
+                     <label class="block text-sm font-medium text-gray-700 mt-4">4. (精读) 选择输出语言</label>
+                     <div class="flex items-center space-x-4 p-4 border rounded-md bg-gray-50">
+                        <label class="flex items-center"><input type="radio" name="language" value="中文" class="h-4 w-4" checked> <span class="ml-2 text-sm">中文</span></label>
+                        <label class="flex items-center"><input type="radio" name="language" value="English" class="h-4 w-4"> <span class="ml-2 text-sm">English</span></label>
+                     </div>
+                </div>
+
+                <!-- (注释) 新增：自定义模式选项 (默认隐藏) -->
+                <div id="custom-mode-options" class="hidden space-y-4">
+                    <label for="custom-prompt" class="block text-sm font-medium text-gray-700">3. (自定义) 请输入你的分析指令 (Prompt)</label>
+                    <textarea id="custom-prompt" name="custom_prompt" rows="6" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="请在这里输入你的指令..."></textarea>
+                    <button type="button" id="show-template-btn" class="text-sm text-blue-600 hover:underline">不知道怎么写？点我查看模板</button>
+                </div>
             </div>
 
+            <!-- (注释) API Key 输入 -->
             <div>
-                <button type="submit" id="submitBtn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200" disabled>
-                    <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    开始分析并下载Excel
-                </button>
+                 <label for="api-key" class="block text-sm font-medium text-gray-700">最后一步: DeepSeek API 密钥</label>
+                <input type="password" name="api_key" id="api-key" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm" placeholder="sk-xxxxxxxxxx">
+                <label class="flex items-center mt-2">
+                    <input type="checkbox" id="remember-key" class="checkbox-custom h-4 w-4">
+                    <span class="ml-2 text-sm text-gray-600">记住密钥</span>
+                </label>
             </div>
-            <div id="statusMessage" class="text-sm text-center mt-4"></div>
+
+            <!-- (注释) 提交按钮与状态显示 -->
+            <div>
+                <button type="submit" id="submit-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-white btn-primary">
+                    开始分析
+                </button>
+                <div id="status" class="mt-4 text-center text-sm"></div>
+            </div>
         </form>
     </div>
 
     <script>
-        const form = document.getElementById('uploadForm');
-        const pdfInput = document.getElementById('pdfs');
-        const apiKeyInput = document.getElementById('api_key');
-        const submitBtn = document.getElementById('submitBtn');
-        const fileNamesDisplay = document.getElementById('fileNames');
-        const statusMessage = document.getElementById('statusMessage');
-        const spinner = document.getElementById('spinner');
+        // (注释) 获取所有需要操作的页面元素
+        const form = document.getElementById('upload-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const statusDiv = document.getElementById('status');
+        const dropZone = document.getElementById('drop-zone');
+        const pdfInput = document.getElementById('pdf-input');
+        const fileListDisplay = document.getElementById('file-list');
+        const apiKeyInput = document.getElementById('api-key');
+        const rememberKeyCheckbox = document.getElementById('remember-key');
+        const modeSelector = document.getElementById('mode-selector');
+        const modeInput = document.getElementById('mode-input');
+        const deepReadOptions = document.getElementById('deep-read-options');
+        const customModeOptions = document.getElementById('custom-mode-options');
+        const showTemplateBtn = document.getElementById('show-template-btn');
+        const customPromptTextarea = document.getElementById('custom-prompt');
 
-        function updateButtonState() {
-            const files = pdfInput.files.length > 0;
-            const apiKey = apiKeyInput.value.trim().startsWith('sk-');
-            submitBtn.disabled = !(files && apiKey);
+        // (注释) 页面加载时，尝试从浏览器缓存中读取API密钥
+        window.addEventListener('load', () => {
+            const savedKey = localStorage.getItem('deepseek_api_key');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+                rememberKeyCheckbox.checked = true;
+            }
+        });
+
+        // (注释) 这是模式切换的核心逻辑
+        modeSelector.addEventListener('click', (e) => {
+            if (e.target.classList.contains('mode-option')) {
+                // (注释) 先移除所有按钮的 'active' 状态
+                modeSelector.querySelector('.active').classList.remove('active');
+                // (注释) 给被点击的按钮添加 'active' 状态
+                e.target.classList.add('active');
+                
+                const selectedMode = e.target.dataset.mode;
+                // (注释) 更新隐藏的input，这样表单提交时后端就能知道当前是什么模式
+                modeInput.value = selectedMode;
+
+                // (注释) 隐藏所有模式的专属选项
+                deepReadOptions.classList.add('hidden');
+                customModeOptions.classList.add('hidden');
+
+                // (注释) 根据选择的模式，显示对应的选项
+                if (selectedMode === '精读模式') {
+                    deepReadOptions.classList.remove('hidden');
+                } else if (selectedMode === '自定义模式') {
+                    customModeOptions.classList.remove('hidden');
+                }
+            }
+        });
+
+        // (注释) 为“查看模板”按钮添加点击事件，加载预设的Prompt模板
+        showTemplateBtn.addEventListener('click', () => {
+            customPromptTextarea.value = `请扮演一名资深行业分析师，提取以下内容的关键信息。\n请严格按照以下格式输出，每个要点占一行：\n【作者】: [提取论文的第一作者]\n【年份】: [提取论文的发表年份]\n【核心发现】: [用一句话总结论文最核心的发现]`;
+        });
+        
+        // (注释) 文件拖拽和选择逻辑
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-400'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-400'); });
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('border-blue-400'); pdfInput.files = e.dataTransfer.files; updateFileList(); });
+        dropZone.addEventListener('click', () => pdfInput.click());
+        pdfInput.addEventListener('change', updateFileList);
+        function updateFileList() {
+            fileListDisplay.textContent = pdfInput.files.length > 0 ? `已选择: ${Array.from(pdfInput.files).map(f => f.name).join(', ')}` : '';
         }
 
-        pdfInput.addEventListener('change', () => {
-            const files = pdfInput.files;
-            if (files.length > 0) {
-                fileNamesDisplay.textContent = `已选择 ${files.length} 个文件`;
-            } else {
-                fileNamesDisplay.textContent = '';
-            }
-            updateButtonState();
-        });
-
-        apiKeyInput.addEventListener('input', updateButtonState);
-
+        // (注释) 表单提交的主函数
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            submitBtn.disabled = true;
-            spinner.classList.remove('hidden');
-            statusMessage.textContent = '正在上传和分析，请稍候...';
-            statusMessage.classList.remove('text-red-500');
-            statusMessage.classList.add('text-gray-600');
-
-            const formData = new FormData();
-            for (const file of pdfInput.files) {
-                formData.append('pdfs', file);
+            // (注释) 根据“记住密钥”选项，保存或清除浏览器缓存中的密钥
+            if (rememberKeyCheckbox.checked) {
+                localStorage.setItem('deepseek_api_key', apiKeyInput.value);
+            } else {
+                localStorage.removeItem('deepseek_api_key');
             }
-            formData.append('api_key', apiKeyInput.value);
-
+            if (pdfInput.files.length === 0) { showError('请上传PDF文件。'); return; }
+            
+            showLoading('正在分析，请稍候...');
+            
             try {
-                const response = await fetch('/analyze', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = 'EggScan_Result.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    statusMessage.textContent = '✅ 分析完成，Excel文件已下载！';
-                    statusMessage.classList.remove('text-red-500');
-                    statusMessage.classList.add('text-green-600');
-                } else {
-                    const errorData = await response.json();
-                    statusMessage.textContent = `❌ 发生错误: ${errorData.error || '未知错误'}`;
-                    statusMessage.classList.remove('text-green-600');
-                    statusMessage.classList.add('text-red-500');
+                // (注释) 使用 fetch API 发送表单数据到后端
+                const response = await fetch('/analyze', { method: 'POST', body: new FormData(form) });
+                if (!response.ok) { throw new Error((await response.json()).error || `服务器错误`); }
+                
+                // (注释) 处理后端返回的Excel文件流并触发下载
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none'; a.href = url;
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'EggScan_Result.xlsx';
+                if (disposition && disposition.includes('attachment')) {
+                    const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                    if (match?.[1]) filename = match[1].replace(/['"]/g, '');
                 }
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showSuccess('分析完成！已开始下载。');
+
             } catch (error) {
-                statusMessage.textContent = `❌ 请求失败: ${error.message}`;
-                statusMessage.classList.remove('text-green-600');
-                statusMessage.classList.add('text-red-500');
-            } finally {
-                submitBtn.disabled = false;
-                spinner.classList.add('hidden');
+                showError(`请求失败: ${error.message}`);
             }
         });
+        
+        // (注释) 三个用于更新UI状态的辅助函数
+        function showLoading(message) { submitBtn.disabled = true; submitBtn.innerHTML = `<div class="loader"></div><span class="ml-2">${message}</span>`; statusDiv.innerHTML = ''; }
+        function showError(message) { submitBtn.disabled = false; submitBtn.innerHTML = '重新分析'; statusDiv.innerHTML = `<p class="text-red-500">${message}</p>`; }
+        function showSuccess(message) { submitBtn.disabled = false; submitBtn.innerHTML = '开始分析'; statusDiv.innerHTML = `<p class="text-green-500">${message}</p>`; }
     </script>
 </body>
 </html>
+
