@@ -29,7 +29,7 @@
         </div>
 
         <form id="upload-form" class="space-y-6">
-            <!-- (注释) 分析模式选择，升级为按钮样式 -->
+            <!-- (注释) 分析模式选择 -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">1. 选择分析模式</label>
                 <div id="mode-selector" class="flex items-center justify-center space-x-2 p-2 border rounded-full bg-gray-100">
@@ -73,7 +73,7 @@
                      </div>
                 </div>
 
-                <!-- (注释) 新增：自定义模式选项 (默认隐藏) -->
+                <!-- (注释) 自定义模式选项 (默认隐藏) -->
                 <div id="custom-mode-options" class="hidden space-y-4">
                     <label for="custom-prompt" class="block text-sm font-medium text-gray-700">3. (自定义) 请输入你的分析指令 (Prompt)</label>
                     <textarea id="custom-prompt" name="custom_prompt" rows="6" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="请在这里输入你的指令..."></textarea>
@@ -130,13 +130,9 @@
         // (注释) 这是模式切换的核心逻辑
         modeSelector.addEventListener('click', (e) => {
             if (e.target.classList.contains('mode-option')) {
-                // (注释) 先移除所有按钮的 'active' 状态
                 modeSelector.querySelector('.active').classList.remove('active');
-                // (注释) 给被点击的按钮添加 'active' 状态
                 e.target.classList.add('active');
-                
                 const selectedMode = e.target.dataset.mode;
-                // (注释) 更新隐藏的input，这样表单提交时后端就能知道当前是什么模式
                 modeInput.value = selectedMode;
 
                 // (注释) 隐藏所有模式的专属选项
@@ -170,7 +166,6 @@
         // (注释) 表单提交的主函数
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // (注释) 根据“记住密钥”选项，保存或清除浏览器缓存中的密钥
             if (rememberKeyCheckbox.checked) {
                 localStorage.setItem('deepseek_api_key', apiKeyInput.value);
             } else {
@@ -181,11 +176,9 @@
             showLoading('正在分析，请稍候...');
             
             try {
-                // (注释) 使用 fetch API 发送表单数据到后端
                 const response = await fetch('/analyze', { method: 'POST', body: new FormData(form) });
                 if (!response.ok) { throw new Error((await response.json()).error || `服务器错误`); }
                 
-                // (注释) 处理后端返回的Excel文件流并触发下载
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
