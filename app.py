@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
-# --- EggScan 云端分析应用 (Flask版 v3.2) ---
+# --- EggScan 云端分析应用 (Flask版 v2.0) ---
 # =============================================================================
-# 版本: 3.2
-# 描述: 将 EggScan v3.2 的核心逻辑封装为 Flask Web 应用，用于云端部署。
+# 版本: 2.0
+# 描述: 将 EggScan v2.0 的核心逻辑封装为 Flask Web 应用，用于云端部署。
 # 作者: [您的名字或团队]
 # =============================================================================
 
@@ -42,7 +42,7 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # antd: 设置最大上传大小为100MB
 LLM_URL = "https://api.deepseek.com/v1/chat/completions"
 
-# --- 分析框架定义 (与v3.2脚本保持一致) ---
+# --- 分析框架定义 (与v2.0脚本保持一致) ---
 CLASSIC_FIELDS = ["研究背景", "研究方法", "实验设计", "结果分析", "讨论"]
 INTENSIVE_FIELDS = ["研究背景与缺口", "研究设计与方法", "主要结果与数据", "创新点与贡献", "局限性与批判", "可借鉴与启发"]
 CUSTOM_TEMPLATE = """
@@ -58,11 +58,11 @@ CUSTOM_TEMPLATE = """
 请用【字段名】：内容 的格式清晰输出。
 """
 
-# --- 核心辅助函数 (从v3.2脚本迁移并优化) ---
+# --- 核心辅助函数 (从v2.0脚本迁移并优化) ---
 
 def smart_extract_text(pdf_path):
     """从PDF中智能提取文本"""
-    # antd: 此函数与本地版v3.2完全相同
+    # antd: 此函数与本地版v2.0完全相同
     try:
         doc = fitz.open(pdf_path)
         text = "\n".join([page.get_text() for page in doc])
@@ -76,7 +76,7 @@ def smart_extract_text(pdf_path):
 
 def beautify_excel_professional(filepath):
     """专业的Excel美化"""
-    # antd: 此函数与本地版v3.2完全相同，包含所有美化更新
+    # antd: 此函数与本地版v2.0完全相同，包含所有美化更新
     try:
         wb = load_workbook(filepath)
         ws = wb.active
@@ -157,7 +157,7 @@ def call_llm(pdf_text, api_key, mode, language, custom_prompt=""):
 
 def parse_llm_output(llm_text, fields):
     """解析LLM输出"""
-    # antd: 此函数与本地版v3.2完全相同
+    # antd: 此函数与本地版v2.0完全相同
     if llm_text.startswith("API_ERROR:"):
         return {field: llm_text if i == 0 else "API错误" for i, field in enumerate(fields)}
     result_dict = {}
@@ -249,3 +249,4 @@ if __name__ == '__main__':
     # antd: 建议使用Gunicorn等WSGI服务器在生产环境中运行
     # antd: 本地测试时，可以使用 app.run(debug=True, host='0.0.0.0', port=5000)
     app.run(host='0.0.0.0', port=5000)
+
