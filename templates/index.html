@@ -50,7 +50,7 @@
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="container mx-auto p-4 md:p-8 max-w-3xl">
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
         <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
             
             <div class="text-center mb-8">
@@ -171,9 +171,9 @@
         const customPromptTextarea = document.getElementById('customPrompt');
         const modeRadios = document.querySelectorAll('input[name="mode"]');
         
-        // antd: 【中文注释】【【修改】】获取新增的进度条和消息日志元素
+        // antd: 【中文注释】获取新增的进度条和消息日志元素
         const progressBarInner = document.getElementById('progress-bar-inner');
-        const progressMessages = document.getElementById('progress-messages'); // 新增
+        const progressMessages = document.getElementById('progress-messages');
 
         // antd: 【中文注释】从LocalStorage加载已保存的API Key
         const savedApiKey = localStorage.getItem('eggscan_api_key');
@@ -232,13 +232,13 @@
             submitBtn.textContent = '分析中...';
             loader.classList.remove('hidden');
             errorMessage.classList.add('hidden');
-            progressMessages.innerHTML = ''; // antd: 【中文注释】【新增】每次开始前清空旧日志
+            progressMessages.innerHTML = ''; // antd: 【中文注释】每次开始前清空旧日志
 
             updateProgress(0, '正在初始化...');
-            addProgressMessage('任务已提交，正在初始化...'); // antd: 【中文注释】【新增】添加第一条日志
+            addProgressMessage('任务已提交，正在初始化...'); // antd: 【中文注释】添加第一条日志
 
             try {
-                // antd: 【中文注释】【【修改】】调用增强版的进度模拟函数
+                // antd: 【中文注释】调用增强版的进度模拟函数
                 await simulateProgress(files.length); 
                 
                 const response = await fetch('/analyze', {
@@ -252,7 +252,7 @@
                 }
                 
                 updateProgress(100, '分析完成！正在准备下载...');
-                addProgressMessage('✅ 分析成功! 报告已生成，即将开始下载。'); // antd: 【中文注释】【新增】添加成功日志
+                addProgressMessage('✅ 分析成功! 报告已生成，即将开始下载。'); // antd: 【中文注释】添加成功日志
                 
                 const blob = await response.blob();
                 const header = response.headers.get('Content-Disposition');
@@ -285,7 +285,7 @@
                 }
                 showError(friendlyErrorMessage);
                 updateProgress(0, '出现错误');
-                addProgressMessage(`❌ 分析失败: ${error.message}`); // antd: 【中文注释】【新增】添加错误日志
+                addProgressMessage(`❌ 分析失败: ${error.message}`); // antd: 【中文注释】添加错误日志
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = '开始分析';
@@ -295,7 +295,7 @@
             }
         });
 
-        // antd: 【中文注释】【新增】用于向日志窗口添加消息的函数
+        // antd: 【中文注释】用于向日志窗口添加消息的函数
         function addProgressMessage(message) {
             const msgDiv = document.createElement('div');
             // antd: 【中文注释】使用Tailwind CSS设计日志条目样式
@@ -319,7 +319,7 @@
             statusText.textContent = text;
         }
 
-        // antd: 【中文注释】【【重写】】模拟进度的函数，现在会同步更新日志
+        // antd: 【中文注释】模拟进度的函数，现在会同步更新日志
         function simulateProgress(fileCount) {
             return new Promise(resolve => {
                 let currentProgress = 0;
