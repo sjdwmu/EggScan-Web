@@ -37,7 +37,7 @@
         input[type="file"]::file-selector-button:hover {
             background-color: #4A88C3;
         }
-        /* antd: 【【【新增】】】进度条样式 */
+        /* antd: 【中文注释】进度条样式 */
         .progress-bar {
             background-color: #e9ecef;
             border-radius: 0.375rem;
@@ -137,7 +137,7 @@
                 </div>
             </form>
             
-            <!-- antd: 【【【修改】】】加载状态区域更新，增加了进度条 -->
+            <!-- antd: 【中文注释】加载状态区域 -->
             <div id="loader" class="hidden text-center mt-8 space-y-4">
                 <div class="loader mx-auto"></div>
                 <p id="status-text" class="text-gray-600 font-medium">正在初始化...</p>
@@ -169,7 +169,6 @@
         const customPromptTextarea = document.getElementById('customPrompt');
         const modeRadios = document.querySelectorAll('input[name="mode"]');
         
-        // antd: 【【【新增】】】获取进度条元素
         const progressBarInner = document.getElementById('progress-bar-inner');
 
         // antd: 【中文注释】从LocalStorage加载已保存的API Key
@@ -225,20 +224,16 @@
                 return;
             }
 
-            // antd: 【【【修改】】】启动加载状态和进度条模拟
             submitBtn.disabled = true;
             submitBtn.textContent = '分析中...';
             loader.classList.remove('hidden');
             errorMessage.classList.add('hidden');
             
-            // antd: 【中文注释】重置进度条和状态
             updateProgress(0, '正在初始化...');
 
             try {
-                // antd: 【中文注释】模拟上传进度
                 await simulateProgress(files.length);
                 
-                // antd: 【中文注释】真实发送请求到后端
                 const response = await fetch('/analyze', {
                     method: 'POST',
                     body: formData,
@@ -249,7 +244,6 @@
                     throw new Error(errorData.error || '服务器返回了一个未知错误。');
                 }
                 
-                // antd: 【中文注释】处理文件下载
                 updateProgress(100, '分析完成！正在准备下载...');
                 const blob = await response.blob();
                 const header = response.headers.get('Content-Disposition');
@@ -274,55 +268,56 @@
                 document.body.removeChild(a);
 
             } catch (error) {
-                showError(error.message);
-                updateProgress(0, '出现错误'); // antd: 出错时重置进度条
+                // antd: 【【【修改】】】针对NetworkError提供更具体的帮助信息
+                let friendlyErrorMessage = '分析失败，请稍后重试。';
+                if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+                    friendlyErrorMessage = '网络连接错误。\n这很可能是因为分析时间过长导致连接超时。\n\n您可以尝试以下操作：\n1. 检查您的网络连接。\n2. 尝试一次只分析一个文件，特别是对于扫描版或非常大的PDF。\n3. 如果在服务器部署，请检查Web服务器（如Gunicorn）的超时设置。';
+                } else {
+                    friendlyErrorMessage = error.message;
+                }
+                showError(friendlyErrorMessage);
+                updateProgress(0, '出现错误');
             } finally {
-                // antd: 【中文注释】恢复UI状态
                 submitBtn.disabled = false;
                 submitBtn.textContent = '开始分析';
-                // antd: 【中文注释】成功后让用户看到100%的进度条，延迟隐藏
                 setTimeout(() => {
                     loader.classList.add('hidden');
                 }, 1500);
             }
         });
 
-        // antd: 【【【新增】】】更新进度条和状态文本的函数
         function updateProgress(percentage, text) {
             progressBarInner.style.width = `${percentage}%`;
             statusText.textContent = text;
         }
 
-        // antd: 【【【新增】】】模拟分析进度的函数
         function simulateProgress(fileCount) {
             return new Promise(resolve => {
                 let currentProgress = 0;
-                const uploadIncrement = 15; // antd: 上传阶段占15%
-                const analysisIncrement = 80 / fileCount; // antd: 分析阶段占80%，均分给每个文件
-                const finalizationIncrement = 5; // antd: 生成报告占5%
+                const uploadIncrement = 15;
+                const analysisIncrement = 80 / fileCount;
+                const finalizationIncrement = 5;
 
-                // antd: 1. 上传阶段
                 updateProgress(uploadIncrement, `正在上传 ${fileCount} 个文件...`);
                 
-                // antd: 2. 分析阶段 (逐个文件模拟)
                 let currentFile = 1;
                 const analysisInterval = setInterval(() => {
                     if (currentFile > fileCount) {
                         clearInterval(analysisInterval);
-                        // antd: 3. 生成报告阶段
                         updateProgress(uploadIncrement + 80 + finalizationIncrement, '正在生成Excel报告...');
-                        resolve(); // antd: 模拟完成，通知主程序继续
+                        resolve();
                         return;
                     }
                     currentProgress = uploadIncrement + (currentFile * analysisIncrement);
                     updateProgress(currentProgress, `正在分析第 ${currentFile} / ${fileCount} 篇文献...`);
                     currentFile++;
-                }, 1500); // antd: 假设每1.5秒分析一个文件
+                }, 1500);
             });
         }
 
         function showError(message) {
-            errorText.textContent = message;
+            // antd: 【【【修改】】】将换行符 \n 替换为 <br> 标签以在HTML中正确显示
+            errorText.innerHTML = message.replace(/\n/g, '<br>');
             errorMessage.classList.remove('hidden');
         }
     </script>
