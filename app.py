@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
-# --- EggScan 云端分析工具 (修正版) ---
+# --- EggScan 云端分析工具 (调试版) ---
+# 【中文注释】增加了日志打印功能，用于查看AI模型的原始输出。
 # =============================================================================
 
 import os
@@ -99,7 +100,7 @@ def beautify_excel_professional(filepath):
             bottom=Side(style='thin', color='B4C6E7')
         )
         
-        # 设置表头样式
+        # 【中文注释】设置表头样式
         for cell in ws[1]:
             cell.font = header_font
             cell.fill = header_fill
@@ -108,7 +109,7 @@ def beautify_excel_professional(filepath):
         
         ws.row_dimensions[1].height = 30
         
-        # 自动调整列宽
+        # 【中文注释】自动调整列宽
         for column in ws.columns:
             max_length = 0
             column_letter = column[0].column_letter
@@ -125,7 +126,7 @@ def beautify_excel_professional(filepath):
             adjusted_width = min(max(max_length * 0.8, 10), 50)
             ws.column_dimensions[column_letter].width = adjusted_width
         
-        # 设置数据区域样式
+        # 【中文注释】设置数据区域样式
         for row_num, row in enumerate(ws.iter_rows(min_row=2), start=2):
             ws.row_dimensions[row_num].height = 60  # 适中的行高
             for cell in row:
@@ -150,13 +151,13 @@ def beautify_excel_professional(filepath):
 def call_llm_for_mode(pdf_text, api_key, mode, language):
     """根据模式调用LLM"""
     
-    # 确保requests已导入
+    # 【中文注释】确保requests已导入
     if requests is None:
         import_heavy_libraries()
     
     lang_instruction = "Please output in English" if language == "English" else "请用中文输出"
     
-    # 根据模式构建prompt
+    # 【中文注释】根据模式构建prompt
     if mode == '泛读模式' or mode == '经典五段式':
         prompt = f"""
 你是一位专业的文献筛选专家，请对这篇论文进行快速泛读分析。
@@ -184,7 +185,7 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
 
 {lang_instruction}
 
-请按照以下六个维度进行详细分析（每个维度至少3-5句话）：
+请严格按照以下六个维度进行详细分析（每个维度至少3-5句话）：
 
 【研究背景与缺口】：详细阐述研究背景和空白
 【研究设计与方法】：包括样本量、分组、统计方法等
@@ -213,7 +214,7 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
     else:
         return None, None
     
-    # 构建请求
+    # 【中文注释】构建请求
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -235,10 +236,19 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
             LLM_URL,
             headers=headers,
             json=payload,
-            timeout=60  # 60秒超时
+            timeout=280  # 【中文注释】将超时时间设置为280秒，小于Gunicorn的300秒超时
         )
         response.raise_for_status()
         result = response.json()["choices"][0]["message"]["content"]
+        
+        # =====================================================================
+        # ---【调试代码】---
+        # 【中文注释】在这里打印出AI返回的原始文本，用于调试。
+        print("\n" + "-"*20 + " AI模型原始输出 START " + "-"*20)
+        print(result)
+        print("-" * 20 + " AI模型原始输出 END " + "-"*20 + "\n")
+        # =====================================================================
+        
         print(f"  ✓ API调用成功")
         return result, fields
     except Exception as e:
@@ -251,15 +261,31 @@ def parse_llm_output(llm_text, fields):
         return {field: llm_text if i == 0 else "API错误" for i, field in enumerate(fields)}
     
     result_dict = {}
-    for field in fields:
-        pattern = rf"【{re.escape(field)}】[：:\s]*([^【]*?)(?=\n【|\Z)"
-        match = re.search(pattern, llm_text, re.DOTALL)
-        if match:
-            content = match.group(1).strip()
-            result_dict[field] = content if content else "未提取到"
-        else:
-            result_dict[field] = "未提取到"
     
+    # 【中文注释】先将一整段文字按【】分割成块，增加解析的鲁棒性
+    # 这样即使AI的格式稍有偏差，也能尽量解析
+    # 使用正则表达式的零宽断言来分割字符串，同时保留分隔符
+    chunks = re.split(r'(?=【.*?】)', llm_text)
+    
+    # 【中文注释】创建一个字典，方便快速查找每个字段对应的内容
+    chunk_dict = {}
+    for chunk in chunks:
+        if not chunk.strip():
+            continue
+        match = re.match(r'【(.*?)】[：:\s]*(.*)', chunk, re.DOTALL)
+        if match:
+            field_name, content = match.groups()
+            chunk_dict[field_name.strip()] = content.strip()
+            
+    # 【中文注释】根据预设的字段列表来填充结果
+    for field in fields:
+        result_dict[field] = chunk_dict.get(field, "未提取到")
+        
+    # 【中文注释】如果所有字段都未提取到，但有内容，则将所有内容放入最后一个字段
+    if all(v == "未提取到" for v in result_dict.values()) and llm_text.strip():
+        if fields:
+             result_dict[fields[-1]] = llm_text.strip()
+             
     return result_dict
 
 # =============================================================================
@@ -271,19 +297,19 @@ def process_single_pdf(pdf_file, api_key, mode, language):
     filename = pdf_file.filename
     print(f"📄 处理文件: {filename}")
     
-    # 保存临时文件
+    # 【中文注释】保存临时文件
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         pdf_file.save(tmp.name)
         pdf_path = tmp.name
     
     try:
-        # 提取文本
+        # 【中文注释】提取文本
         text = smart_extract_text(pdf_path)
         if len(text.strip()) < 500:
             print(f"  ⚠️ 文本内容太少，跳过")
             return None
         
-        # 调用LLM
+        # 【中文注释】调用LLM
         llm_output, fields = call_llm_for_mode(text, api_key, mode, language)
         
         if fields:
@@ -300,7 +326,7 @@ def process_single_pdf(pdf_file, api_key, mode, language):
         print(f"  ❌ 处理失败: {e}")
         return {'文件名': filename, '错误': str(e)}
     finally:
-        # 清理临时文件
+        # 【中文注释】清理临时文件
         if os.path.exists(pdf_path):
             os.unlink(pdf_path)
 
@@ -320,17 +346,17 @@ def index():
 def analyze_pdfs():
     """处理PDF分析请求"""
     
-    # 首次请求时加载库
+    # 【中文注释】首次请求时加载库
     import_heavy_libraries()
     
-    # 获取表单数据（注意字段名要匹配前端）
+    # 【中文注释】获取表单数据（注意字段名要匹配前端）
     pdf_files = request.files.getlist('pdfs')
     api_key = request.form.get('apiKey')  # 注意：前端发送的是 apiKey
     mode = request.form.get('mode', '泛读模式')
     language = request.form.get('language', '中文')
     custom_prompt = request.form.get('customPrompt', CUSTOM_TEMPLATE)
     
-    # 调试输出
+    # 【中文注释】调试输出
     print("\n" + "="*50)
     print("收到分析请求：")
     print(f"  文件数量: {len(pdf_files)}")
@@ -342,7 +368,7 @@ def analyze_pdfs():
         print("  ⚠️ API密钥为空！")
     print("="*50 + "\n")
     
-    # 验证输入
+    # 【中文注释】验证输入
     if not api_key:
         return jsonify({"error": "API密钥不能为空"}), 400
     
@@ -352,15 +378,15 @@ def analyze_pdfs():
     if not pdf_files or len(pdf_files) == 0:
         return jsonify({"error": "请至少上传一个PDF文件"}), 400
     
-    # 限制文件数量（避免超时）
+    # 【中文注释】限制文件数量（避免超时）
     if len(pdf_files) > 5:
         return jsonify({"error": "为避免超时，每次最多处理5个文件"}), 400
     
-    # 处理文件
+    # 【中文注释】处理文件
     all_results = []
     success_count = 0
     
-    # 使用线程池并行处理（最多3个并发）
+    # 【中文注释】使用线程池并行处理（最多3个并发）
     max_workers = min(3, len(pdf_files))
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
@@ -368,28 +394,28 @@ def analyze_pdfs():
             future = executor.submit(process_single_pdf, pdf_file, api_key, mode, language)
             futures.append(future)
         
-        # 收集结果
+        # 【中文注释】收集结果
         for future in as_completed(futures):
             try:
-                result = future.result(timeout=90)  # 单文件最多90秒
+                result = future.result(timeout=290)  # 【中文注释】单文件最多290秒，小于Gunicorn超时
                 if result and '错误' not in result:
                     all_results.append(result)
                     success_count += 1
             except Exception as e:
                 print(f"  ❌ 处理异常: {e}")
     
-    # 检查结果
+    # 【中文注释】检查结果
     if not all_results:
         return jsonify({"error": "所有文件都处理失败，请检查API密钥或PDF内容"}), 500
     
     print(f"\n✓ 成功处理 {success_count}/{len(pdf_files)} 个文件")
     
-    # 生成Excel报告
+    # 【中文注释】生成Excel报告
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
             df = pd.DataFrame(all_results)
             
-            # 调整列顺序
+            # 【中文注释】调整列顺序
             if '文件名' in df.columns:
                 cols = df.columns.tolist()
                 cols.remove('文件名')
@@ -399,15 +425,15 @@ def analyze_pdfs():
                     cols.insert(1, '分析时间')
                 df = df[cols]
             
-            # 保存Excel
+            # 【中文注释】保存Excel
             df.to_excel(tmp.name, index=False, engine='openpyxl')
             beautify_excel_professional(tmp.name)
             
-            # 生成文件名
+            # 【中文注释】生成文件名
             timestamp = datetime.now().strftime("%Y%m%d_%H%M")
             filename = f"EggScan_{mode}_{timestamp}.xlsx"
             
-            # 发送文件
+            # 【中文注释】发送文件
             response = send_file(
                 tmp.name,
                 as_attachment=True,
@@ -415,7 +441,7 @@ def analyze_pdfs():
                 mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
             
-            # 清理临时文件
+            # 【中文注释】清理临时文件
             @response.call_on_close
             def cleanup():
                 if os.path.exists(tmp.name):
