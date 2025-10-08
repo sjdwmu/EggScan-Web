@@ -24,4 +24,4 @@ EXPOSE 5000
 # 6. 定义容器启动时执行的命令
 # 我们使用 Gunicorn 来启动你的应用，它是一个专业的 WSGI 服务器，比 app.py 自带的开发服务器更稳定高效
 # app:app 的意思是：运行 app.py 文件中的 app 这个 Flask 实例
-CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "--timeout", "300", "app:app"]
