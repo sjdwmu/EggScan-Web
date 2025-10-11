@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
-# --- EggScan 云端分析工具 (功能增强版) ---
-# 【中文注释】增加了对AI输出的清理，并优化了Prompt。
+# --- EggScan 云端分析工具 (v2.2) ---
+# 【中文注释】统一了“泛读模式”的名称。
 # =============================================================================
 
 import os
@@ -91,7 +91,6 @@ def beautify_excel_professional(filepath):
         
         header_fill = PatternFill(fill_type="solid", fgColor="5B9BD5")
         header_font = Font(name='微软雅黑', bold=True, color="FFFFFF", size=11)
-        
         data_font = Font(name='微软雅黑', size=12)
         
         thin_border = Border(
@@ -153,14 +152,14 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
         import_heavy_libraries()
     
     lang_instruction = "Please output in English" if language == "English" else "请用中文输出"
-    
-    # =====================================================================
-    # ---【功能优化】---
-    # 【中文注释】在prompt中增加了一条指令，要求AI不要重复问题，直接给出答案。
     prompt_instruction = "请严格按照以下格式提取关键信息（每个字段必须填写，不要在答案中重复问题本身）："
-    # =====================================================================
         
-    if mode == '泛读模式' or mode == '经典五段式':
+    # =====================================================================
+    # ---【逻辑修改】---
+    # 【中文注释】删除了对“经典五段式”的判断，统一为“泛读模式”
+    if mode == '泛读模式':
+    # ---【逻辑修改结束】---
+    # =====================================================================
         prompt = f"""
 你是一位专业的文献筛选专家，请对这篇论文进行快速泛读分析。
 目标：快速判断文献的相关性和核心价值。
@@ -270,13 +269,9 @@ def parse_llm_output(llm_text, fields):
         if match:
             field_name, content = match.groups()
             
-            # =====================================================================
-            # ---【功能优化】---
-            # 【中文注释】增加一步清理，如果内容的第一行看起来像个问题，就把它删掉。
             content_lines = content.strip().split('\n')
             if len(content_lines) > 1 and ('什么' in content_lines[0] or '如何' in content_lines[0] or content_lines[0].endswith(('?', '？'))):
                 content = '\n'.join(content_lines[1:]).strip()
-            # =====================================================================
             
             chunk_dict[field_name.strip()] = content.strip()
             
@@ -452,3 +447,4 @@ def internal_error(error):
 if __name__ == '__main__':
     # 本地测试
     app.run(host='0.0.0.0', port=5000, debug=True)
+
