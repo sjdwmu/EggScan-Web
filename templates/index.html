@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EggScan 文献智能分析系统 v2.0</title>
+    <title>EggScan 文献智能分析系统 v2.2</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23F59E0B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22c-5 0-9-4.5-9-10 0-2.5 1-5 2.5-6.5C7 4 8.5 2 12 2c3.5 0 5 2 6.5 3.5C20 7 21 9.5 21 12c0 5.5-4 10-9 10z'/%3E%3Cpath d='m10 14 2-2 2 2'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -22,19 +22,6 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-        /* antd: 【中文注释】优化文件输入框样式 */
-        input[type="file"]::file-selector-button {
-            background-color: #5B9BD5;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        input[type="file"]::file-selector-button:hover {
-            background-color: #4A88C3;
         }
         /* antd: 【中文注释】进度条样式 */
         .progress-bar {
@@ -61,16 +48,28 @@
                     </svg>
                     EggScan
                 </h1>
-                <p class="text-lg text-gray-500 mt-2">文献智能分析系统 v2.0 · 云端版</p>
+                <p class="text-lg text-gray-500 mt-2">文献智能分析系统 v2.2 · 云端版</p>
             </div>
 
             <form id="upload-form" class="space-y-8">
                 
                 <div>
                     <label class="text-lg font-semibold text-gray-700 block mb-3">步骤 1: 上传PDF文献</label>
-                    <input type="file" id="pdfs" name="pdfs" multiple required
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
-                    <p class="text-xs text-gray-400 mt-2">可以一次选择多个文件。最大总上传大小: 100MB。</p>
+                    <div class="flex items-center space-x-4">
+                        <label for="pdfs-input" class="cursor-pointer w-full md:w-auto bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 ease-in-out text-center">
+                            + 添加文件
+                        </label>
+                        <input type="file" id="pdfs-input" name="pdfs" multiple class="hidden">
+                        
+                        <button type="button" id="clear-files-btn" class="w-full md:w-auto bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition-all">
+                            清空列表
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">可以多次点击“添加文件”从不同文件夹选择。最大总上传大小: 100MB。</p>
+                    
+                    <div id="file-list" class="mt-4 max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-lg border text-sm">
+                        <p class="text-gray-400">尚未选择任何文件</p>
+                    </div>
                 </div>
 
                 <div>
@@ -87,11 +86,15 @@
                 <div>
                     <label class="text-lg font-semibold text-gray-700 block mb-3">步骤 3: 选择分析模式</label>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- ===================================================================== -->
+                        <!-- ---【文本修改】--- -->
                         <label class="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:ring-2 has-[:checked]:ring-blue-300">
-                            <input type="radio" name="mode" value="经典模式" class="sr-only" checked>
-                            <span class="font-bold text-gray-800">📜 经典五段式</span>
-                            <p class="text-sm text-gray-500 mt-1">快速构建文章框架，提取背景、方法、结果等。</p>
+                            <input type="radio" name="mode" value="泛读模式" class="sr-only" checked>
+                            <span class="font-bold text-gray-800">📜 泛读模式</span>
+                            <p class="text-sm text-gray-500 mt-1">快速筛选文献，提取核心价值。</p>
                         </label>
+                        <!-- ---【文本修改结束】--- -->
+                        <!-- ===================================================================== -->
                         <label class="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400 has-[:checked]:ring-2 has-[:checked]:ring-blue-300">
                             <input type="radio" name="mode" value="精读模式" class="sr-only">
                             <span class="font-bold text-gray-800">📚 精读模式</span>
@@ -132,10 +135,9 @@
                     💡 使用提示
                 </h3>
                 <ul class="list-none p-0 space-y-2 text-gray-600 text-sm">
-                    <li class="flex items-start"><span class="text-amber-500 font-bold mr-2">✓</span> <span>泛读模式适合快速筛选大量文献</span></li>
-                    <li class="flex items-start"><span class="text-amber-500 font-bold mr-2">✓</span> <span>精读模式适合深度分析重要文献</span></li>
-                    <li class="flex items-start"><span class="text-amber-500 font-bold mr-2">✓</span> <span>处理时间取决于文献数量和长度</span></li>
-                    <li class="flex items-start"><span class="text-amber-500 font-bold mr-2">✓</span> <span>建议每次处理不超过10篇文献</span></li>
+                    <li class="flex items-start"><span class="text-amber-500 font-bold mr-2">✓</span> <span>点击“添加文件”可从不同文件夹多次选择文件。</span></li>
+                    <li class="flex items-start"><span class="text-amber-500 font-bold mr-2">✓</span> <span>为避免超时，建议每次处理不超过5篇文献。</span></li>
+                    <li class="flex items-start"><span class="text-amber-500 font-bold mr-2">✓</span> <span>处理时间取决于文献数量、长度及网络状况。</span></li>
                 </ul>
             </div>
             
@@ -146,7 +148,7 @@
                     <div id="progress-bar-inner" class="progress-bar-inner w-0"></div>
                 </div>
                 <div id="progress-messages" class="mt-4 max-h-48 overflow-y-auto bg-gray-50 p-3 rounded-md border text-sm text-left text-gray-700 leading-relaxed shadow-inner">
-                    </div>
+                </div>
                 <p class="text-sm text-gray-400">(大型或扫描版PDF可能需要几分钟时间)</p>
             </div>
             
@@ -158,8 +160,11 @@
     </div>
 
     <script>
-        // antd: 【中文注释】核心交互逻辑
+        // 【中文注释】获取所有需要的DOM元素
         const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('pdfs-input');
+        const fileListDiv = document.getElementById('file-list');
+        const clearFilesBtn = document.getElementById('clear-files-btn');
         const submitBtn = document.getElementById('submit-btn');
         const loader = document.getElementById('loader');
         const statusText = document.getElementById('status-text');
@@ -170,59 +175,61 @@
         const customPromptContainer = document.getElementById('custom-prompt-container');
         const customPromptTextarea = document.getElementById('customPrompt');
         const modeRadios = document.querySelectorAll('input[name="mode"]');
-        
-        // antd: 【中文注释】获取新增的进度条和消息日志元素
         const progressBarInner = document.getElementById('progress-bar-inner');
         const progressMessages = document.getElementById('progress-messages');
+        
+        let totalFiles = []; 
 
-        // antd: 【中文注释】从LocalStorage加载已保存的API Key
-        const savedApiKey = localStorage.getItem('eggscan_api_key');
-        if (savedApiKey) {
-            apiKeyInput.value = savedApiKey;
-            saveKeyCheckbox.checked = true;
+        function updateFileList() {
+            if (totalFiles.length === 0) {
+                fileListDiv.innerHTML = '<p class="text-gray-400">尚未选择任何文件</p>';
+                return;
+            }
+            fileListDiv.innerHTML = '';
+            const list = document.createElement('ul');
+            list.className = 'list-disc pl-5 space-y-1 text-gray-600';
+            totalFiles.forEach((file, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = file.name;
+                list.appendChild(listItem);
+            });
+            fileListDiv.appendChild(list);
         }
 
-        // antd: 【中文注释】保存或清除API Key
-        saveKeyCheckbox.addEventListener('change', () => {
-            if (saveKeyCheckbox.checked) {
-                localStorage.setItem('eggscan_api_key', apiKeyInput.value);
-            } else {
-                localStorage.removeItem('eggscan_api_key');
-            }
-        });
-        apiKeyInput.addEventListener('input', () => {
-            if (saveKeyCheckbox.checked) {
-                localStorage.setItem('eggscan_api_key', apiKeyInput.value);
-            }
+        fileInput.addEventListener('change', (e) => {
+            totalFiles.push(...e.target.files);
+            updateFileList();
+            e.target.value = ''; 
         });
 
-        // antd: 【中文注释】监听模式选择，控制自定义输入框的显示
-        const defaultCustomPrompt = `请从以下角度分析这篇文献：\n\n【研究主题】：文章的核心研究问题是什么？\n【理论框架】：使用了什么理论基础或概念框架？\n【方法创新】：在研究方法上有什么创新或特色？\n【数据质量】：数据来源、样本量、统计分析的可靠性如何？\n【关键发现】：最重要的3个研究发现是什么？\n【实践意义】：对临床实践或政策制定有什么指导意义？\n【争议与讨论】：存在哪些争议点或值得进一步讨论的问题？\n【引用价值】：这篇文章最值得引用的观点或数据是什么？\n\n请用【字段名】：内容 的格式清晰输出。`;
-        
-        modeRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.value === '自定义模式') {
-                    customPromptContainer.classList.remove('hidden');
-                    if (customPromptTextarea.value.trim() === '') {
-                        customPromptTextarea.value = defaultCustomPrompt;
-                    }
-                } else {
-                    customPromptContainer.classList.add('hidden');
-                }
-            });
+        clearFilesBtn.addEventListener('click', () => {
+            totalFiles = [];
+            updateFileList();
         });
         
-        // antd: 【中文注释】处理表单提交
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const formData = new FormData(form);
-            const files = document.getElementById('pdfs').files;
+            const formData = new FormData();
             
-            if (files.length === 0) {
+            if (totalFiles.length === 0) {
                 showError('请至少选择一个PDF文件。');
                 return;
             }
+            totalFiles.forEach(file => {
+                formData.append('pdfs', file);
+            });
+
+            formData.append('apiKey', apiKeyInput.value);
+            formData.append('language', document.getElementById('language').value);
+            const selectedMode = document.querySelector('input[name="mode"]:checked');
+            if (selectedMode) {
+                formData.append('mode', selectedMode.value);
+            }
+            if (selectedMode && selectedMode.value === '自定义模式') {
+                formData.append('customPrompt', customPromptTextarea.value);
+            }
+            
             if (!apiKeyInput.value.startsWith('sk-')) {
                 showError('请输入一个有效的DeepSeek API密钥。');
                 return;
@@ -232,14 +239,13 @@
             submitBtn.textContent = '分析中...';
             loader.classList.remove('hidden');
             errorMessage.classList.add('hidden');
-            progressMessages.innerHTML = ''; // antd: 【中文注释】每次开始前清空旧日志
+            progressMessages.innerHTML = ''; 
 
             updateProgress(0, '正在初始化...');
-            addProgressMessage('任务已提交，正在初始化...'); // antd: 【中文注释】添加第一条日志
+            addProgressMessage('任务已提交，正在初始化...');
 
             try {
-                // antd: 【中文注释】调用增强版的进度模拟函数
-                await simulateProgress(files.length); 
+                await simulateProgress(totalFiles.length);
                 
                 const response = await fetch('/analyze', {
                     method: 'POST',
@@ -252,7 +258,7 @@
                 }
                 
                 updateProgress(100, '分析完成！正在准备下载...');
-                addProgressMessage('✅ 分析成功! 报告已生成，即将开始下载。'); // antd: 【中文注释】添加成功日志
+                addProgressMessage('✅ 分析成功! 报告已生成，即将开始下载。'); 
                 
                 const blob = await response.blob();
                 const header = response.headers.get('Content-Disposition');
@@ -285,81 +291,43 @@
                 }
                 showError(friendlyErrorMessage);
                 updateProgress(0, '出现错误');
-                addProgressMessage(`❌ 分析失败: ${error.message}`); // antd: 【中文注释】添加错误日志
+                addProgressMessage(`❌ 分析失败: ${error.message}`);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = '开始分析';
                 setTimeout(() => {
                     loader.classList.add('hidden');
-                }, 2000); // antd: 【中文注释】稍作停留，让用户看到最终状态
+                }, 2000);
             }
         });
 
-        // antd: 【中文注释】用于向日志窗口添加消息的函数
         function addProgressMessage(message) {
             const msgDiv = document.createElement('div');
-            // antd: 【中文注释】使用Tailwind CSS设计日志条目样式
             msgDiv.className = 'mb-1 py-1 px-2 border-l-4 border-gray-300';
-            
             if (message.includes('成功') || message.includes('✅')) {
                 msgDiv.className = 'mb-1 py-1 px-2 border-l-4 border-green-500 bg-green-50';
             } else if (message.includes('失败') || message.includes('❌')) {
                 msgDiv.className = 'mb-1 py-1 px-2 border-l-4 border-red-500 bg-red-50';
             }
-
             msgDiv.textContent = message;
             progressMessages.appendChild(msgDiv);
-            // antd: 【中文注释】自动滚动到最新消息
             progressMessages.scrollTop = progressMessages.scrollHeight;
         }
-
-        // antd: 【中文注释】更新主状态文本和进度条
         function updateProgress(percentage, text) {
             progressBarInner.style.width = `${percentage}%`;
             statusText.textContent = text;
         }
-
-        // antd: 【中文注释】模拟进度的函数，现在会同步更新日志
-        function simulateProgress(fileCount) {
-            return new Promise(resolve => {
-                let currentProgress = 0;
-                const uploadTime = 1000;
-                const analysisTimePerFile = 2000;
-                
-                // 阶段1: 上传
-                setTimeout(() => {
-                    currentProgress = 15;
-                    updateProgress(currentProgress, `正在上传 ${fileCount} 个文件...`);
-                    addProgressMessage(`[1/3] 文件上传中...`);
-                    
-                    // 阶段2: 分析
-                    let analyzedFiles = 0;
-                    addProgressMessage(`[2/3] 开始逐篇分析文献...`);
-                    const analysisInterval = setInterval(() => {
-                        if (analyzedFiles >= fileCount) {
-                            clearInterval(analysisInterval);
-                            // 阶段3: 生成报告
-                            currentProgress = 95;
-                            updateProgress(currentProgress, '正在生成Excel报告...');
-                            addProgressMessage('[3/3] 所有文件分析完毕，正在生成最终报告...');
-                            resolve(); // antd: 【中文注释】模拟完成，返回主流程
-                            return;
-                        }
-                        
-                        analyzedFiles++;
-                        const progressPerFile = 80 / fileCount;
-                        currentProgress += progressPerFile;
-                        updateProgress(Math.min(95, currentProgress), `正在分析第 ${analyzedFiles} / ${fileCount} 篇文献...`);
-                        addProgressMessage(`  - 正在处理文献 #${analyzedFiles}`);
-                    }, analysisTimePerFile);
-                }, uploadTime);
-            });
-        }
-
+        function simulateProgress(fileCount) { /* ... 保持不变 ... */ return new Promise(resolve => {setTimeout(() => {updateProgress(15,`正在上传 ${fileCount} 个文件...`);addProgressMessage(`[1/3] 文件上传中...`);let analyzedFiles=0;addProgressMessage(`[2/3] 开始逐篇分析文献...`);const analysisInterval=setInterval(() => {if(analyzedFiles>=fileCount){clearInterval(analysisInterval);updateProgress(95,'正在生成Excel报告...');addProgressMessage('[3/3] 所有文件分析完毕，正在生成最终报告...');resolve();return;}
+        analyzedFiles++;const progressPerFile=80/fileCount;let currentProgress=15+analyzedFiles*progressPerFile;updateProgress(Math.min(95,currentProgress),`正在分析第 ${analyzedFiles}/${fileCount} 篇文献...`);addProgressMessage(`  - 正在处理文献 #${analyzedFiles}`);},2000);},1000);});}
         function showError(message) {
             errorText.innerHTML = message.replace(/\n/g, '<br>');
             errorMessage.classList.remove('hidden');
         }
+        const savedApiKey=localStorage.getItem('eggscan_api_key');if(savedApiKey){apiKeyInput.value=savedApiKey;saveKeyCheckbox.checked=true;}
+        saveKeyCheckbox.addEventListener('change', () => {if(saveKeyCheckbox.checked){localStorage.setItem('eggscan_api_key',apiKeyInput.value);}else{localStorage.removeItem('eggscan_api_key');}});
+        apiKeyInput.addEventListener('input', () => {if(saveKeyCheckbox.checked){localStorage.setItem('eggscan_api_key',apiKeyInput.value);}});
+        const defaultCustomPrompt='请从以下角度分析这篇文献：\n\n【研究主题】：文章的核心研究问题是什么？\n【理论框架】：使用了什么理论基础或概念框架？\n【方法创新】：在研究方法上有什么创新或特色？\n【数据质量】：数据来源、样本量、统计分析的可靠性如何？\n【关键发现】：最重要的3个研究发现是什么？\n【实践意义】：对临床实践或政策制定有什么指导意义？\n【争议与讨论】：存在哪些争议点或值得进一步讨论的问题？\n【引用价值】：这篇文章最值得引用的观点或数据是什么？\n\n请用【字段名】：内容 的格式清晰输出。';modeRadios.forEach(radio=>{radio.addEventListener('change',()=>{if(radio.value==='自定义模式'){customPromptContainer.classList.remove('hidden');if(customPromptTextarea.value.trim()===''){customPromptTextarea.value=defaultCustomPrompt;}}else{customPromptContainer.classList.add('hidden');}});});
     </script>
 </body>
 </html>
+
