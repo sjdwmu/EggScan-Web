@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
-# --- EggScan 云端分析工具 (最终优化版) ---
-# 【中文注释】优化了Excel样式并增加了对AI输出内容的清理功能。
+# --- EggScan 云端分析工具 (功能增强版) ---
+# 【中文注释】增加了对AI输出的清理，并优化了Prompt。
 # =============================================================================
 
 import os
@@ -92,11 +92,7 @@ def beautify_excel_professional(filepath):
         header_fill = PatternFill(fill_type="solid", fgColor="5B9BD5")
         header_font = Font(name='微软雅黑', bold=True, color="FFFFFF", size=11)
         
-        # =====================================================================
-        # ---【样式修改】---
-        # 【中文注释】根据你的要求，将正文字体调整为微软雅黑 12号。
         data_font = Font(name='微软雅黑', size=12)
-        # =====================================================================
         
         thin_border = Border(
             left=Side(style='thin', color='B4C6E7'),
@@ -105,7 +101,6 @@ def beautify_excel_professional(filepath):
             bottom=Side(style='thin', color='B4C6E7')
         )
         
-        # 【中文注释】设置表头样式
         for cell in ws[1]:
             cell.font = header_font
             cell.fill = header_fill
@@ -114,7 +109,6 @@ def beautify_excel_professional(filepath):
         
         ws.row_dimensions[1].height = 30
         
-        # 【中文注释】自动调整列宽
         for column in ws.columns:
             max_length = 0
             column_letter = column[0].column_letter
@@ -131,13 +125,8 @@ def beautify_excel_professional(filepath):
             adjusted_width = min(max(max_length * 0.9, 15), 60)
             ws.column_dimensions[column_letter].width = adjusted_width
         
-        # 【中文注释】设置数据区域样式
         for row_num, row in enumerate(ws.iter_rows(min_row=2), start=2):
-            # =====================================================================
-            # ---【样式修改】---
-            # 【中文注释】根据你的要求，将正文行高设置为 200 磅。
             ws.row_dimensions[row_num].height = 200
-            # =====================================================================
             for cell in row:
                 cell.alignment = Alignment(wrap_text=True, vertical="top", horizontal="left")
                 cell.border = thin_border
@@ -165,6 +154,12 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
     
     lang_instruction = "Please output in English" if language == "English" else "请用中文输出"
     
+    # =====================================================================
+    # ---【功能优化】---
+    # 【中文注释】在prompt中增加了一条指令，要求AI不要重复问题，直接给出答案。
+    prompt_instruction = "请严格按照以下格式提取关键信息（每个字段必须填写，不要在答案中重复问题本身）："
+    # =====================================================================
+        
     if mode == '泛读模式' or mode == '经典五段式':
         prompt = f"""
 你是一位专业的文献筛选专家，请对这篇论文进行快速泛读分析。
@@ -172,7 +167,7 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
 
 {lang_instruction}
 
-请严格按照以下格式提取关键信息（每个字段必须填写）：
+{prompt_instruction}
 
 【研究问题】：这篇文章具体想回答什么问题？
 【核心论点】：作者最核心的观点是什么？（一句话总结）
@@ -192,7 +187,7 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
 
 {lang_instruction}
 
-请严格按照以下六个维度进行详细分析（每个维度至少3-5句话）：
+请严格按照以下六个维度进行详细分析（每个维度至少3-5句话，不要在答案中重复问题本身）：
 
 【研究背景与缺口】：详细阐述研究背景和空白
 【研究设计与方法】：包括样本量、分组、统计方法等
@@ -264,13 +259,9 @@ def parse_llm_output(llm_text, fields):
     
     result_dict = {}
     
-    # =====================================================================
-    # ---【功能优化】---
-    # 【中文注释】增加一步清理，去除AI回复中可能包含的Markdown标题和分隔符。
     cleaned_text = re.sub(r'^\s*#+\s*|^\s*---\s*|\s*---\s*$', '', llm_text, flags=re.MULTILINE)
-    # =====================================================================
-
-    chunks = re.split(r'(?=【.*?】)', cleaned_text) # 【中文注释】使用清理后的文本
+    
+    chunks = re.split(r'(?=【.*?】)', cleaned_text)
     chunk_dict = {}
     for chunk in chunks:
         if not chunk.strip():
@@ -278,6 +269,15 @@ def parse_llm_output(llm_text, fields):
         match = re.match(r'【(.*?)】[：:\s]*(.*)', chunk, re.DOTALL)
         if match:
             field_name, content = match.groups()
+            
+            # =====================================================================
+            # ---【功能优化】---
+            # 【中文注释】增加一步清理，如果内容的第一行看起来像个问题，就把它删掉。
+            content_lines = content.strip().split('\n')
+            if len(content_lines) > 1 and ('什么' in content_lines[0] or '如何' in content_lines[0] or content_lines[0].endswith(('?', '？'))):
+                content = '\n'.join(content_lines[1:]).strip()
+            # =====================================================================
+            
             chunk_dict[field_name.strip()] = content.strip()
             
     for field in fields:
@@ -290,7 +290,7 @@ def parse_llm_output(llm_text, fields):
     return result_dict
 
 # =============================================================================
-# --- 处理单个PDF ---
+# --- 后续代码保持不变... ---
 # =============================================================================
 
 def process_single_pdf(pdf_file, api_key, mode, language):
@@ -326,10 +326,6 @@ def process_single_pdf(pdf_file, api_key, mode, language):
     finally:
         if os.path.exists(pdf_path):
             os.unlink(pdf_path)
-
-# =============================================================================
-# --- Flask应用 ---
-# =============================================================================
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
@@ -445,7 +441,6 @@ def test():
         "version": "3.0"
     })
 
-# 错误处理
 @app.errorhandler(413)
 def request_entity_too_large(error):
     return jsonify({"error": "文件太大，请确保总大小不超过100MB"}), 413
@@ -457,4 +452,3 @@ def internal_error(error):
 if __name__ == '__main__':
     # 本地测试
     app.run(host='0.0.0.0', port=5000, debug=True)
-
