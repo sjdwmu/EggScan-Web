@@ -145,7 +145,7 @@ def beautify_excel_professional(filepath):
 # --- LLM调用函数 ---
 # =============================================================================
 
-def call_llm_for_mode(pdf_text, api_key, mode, language):
+def call_llm_for_mode(pdf_text, api_key, mode, language, custom_prompt=None):
     """根据模式调用LLM"""
     
     if requests is None:
@@ -202,8 +202,11 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
         fields = INTENSIVE_FIELDS
         
     elif mode == '自定义模式':
+        # 使用用户提供的自定义提示，如果没有则使用默认模板
+        template_to_use = custom_prompt if custom_prompt and custom_prompt.strip() else CUSTOM_TEMPLATE
+
         prompt = f"""
-{CUSTOM_TEMPLATE}
+{template_to_use}
 
 {lang_instruction}
 
@@ -211,7 +214,7 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
 论文内容：
 {pdf_text[:30000]}
 """
-        fields = re.findall(r'【([^】]+)】', CUSTOM_TEMPLATE)
+        fields = re.findall(r'【([^】]+)】', template_to_use)
     else:
         return None, None
     
@@ -288,7 +291,7 @@ def parse_llm_output(llm_text, fields):
 # --- 后续代码保持不变... ---
 # =============================================================================
 
-def process_single_pdf(pdf_file, api_key, mode, language):
+def process_single_pdf(pdf_file, api_key, mode, language, custom_prompt=None):
     """处理单个PDF文件"""
     filename = pdf_file.filename
     print(f"📄 处理文件: {filename}")
@@ -303,7 +306,7 @@ def process_single_pdf(pdf_file, api_key, mode, language):
             print(f"  ⚠️ 文本内容太少，跳过")
             return None
         
-        llm_output, fields = call_llm_for_mode(text, api_key, mode, language)
+        llm_output, fields = call_llm_for_mode(text, api_key, mode, language, custom_prompt)
         
         if fields:
             result = parse_llm_output(llm_output, fields)
@@ -347,6 +350,8 @@ def analyze_pdfs():
     print(f"  文件数量: {len(pdf_files)}")
     print(f"  分析模式: {mode}")
     print(f"  输出语言: {language}")
+    if mode == '自定义模式':
+        print(f"  自定义提示: {custom_prompt[:100]}..." if len(custom_prompt) > 100 else f"  自定义提示: {custom_prompt}")
     if api_key:
         print(f"  API密钥: {api_key[:8]}...{api_key[-4:]}")
     else:
@@ -372,7 +377,7 @@ def analyze_pdfs():
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for pdf_file in pdf_files:
-            future = executor.submit(process_single_pdf, pdf_file, api_key, mode, language)
+            future = executor.submit(process_single_pdf, pdf_file, api_key, mode, language, custom_prompt)
             futures.append(future)
         
         for future in as_completed(futures):
