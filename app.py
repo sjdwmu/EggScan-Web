@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
-# --- EggScan 云端分析工具 (v2.2) ---
-# 【中文注释】统一了“泛读模式”的名称。
+# --- EggScan 云端分析工具 (v3.0 - 期刊提取增强版) ---
+# 【中文注释】增加了自动提取文献发表期刊与时间的功能，并优化了Excel列排序。
 # =============================================================================
 
 import os
@@ -47,11 +47,12 @@ def import_heavy_libraries():
 # API和常量定义
 LLM_URL = "https://api.deepseek.com/v1/chat/completions"
 
-# 泛读框架（快速筛选）
-SKIMMING_FIELDS = ["研究问题", "核心论点", "研究方法", "关键结论", "相关性评估"]
-
-# 精读框架（深度分析）
-INTENSIVE_FIELDS = ["研究背景与缺口", "研究设计与方法", "主要结果与数据", "创新点与贡献", "局限性与批判", "可借鉴与启发"]
+# =============================================================================
+# --- 模式字段定义 ---
+# 【中文注释】在这两个模式中都加入了“期刊”字段，以便程序自动解析。
+# =============================================================================
+SKIMMING_FIELDS = ["期刊", "研究问题", "核心论点", "研究方法", "关键结论", "相关性评估"]
+INTENSIVE_FIELDS = ["期刊", "研究背景与缺口", "研究设计与方法", "主要结果与数据", "创新点与贡献", "局限性与批判", "可借鉴与启发"]
 
 # 自定义模板
 CUSTOM_TEMPLATE = """
@@ -145,7 +146,7 @@ def beautify_excel_professional(filepath):
 # --- LLM调用函数 ---
 # =============================================================================
 
-def call_llm_for_mode(pdf_text, api_key, mode, language, custom_prompt=None):
+def call_llm_for_mode(pdf_text, api_key, mode, language):
     """根据模式调用LLM"""
     
     if requests is None:
@@ -153,13 +154,11 @@ def call_llm_for_mode(pdf_text, api_key, mode, language, custom_prompt=None):
     
     lang_instruction = "Please output in English" if language == "English" else "请用中文输出"
     prompt_instruction = "请严格按照以下格式提取关键信息（每个字段必须填写，不要在答案中重复问题本身）："
+    
+    # 【中文注释】通用的期刊信息提取指令
+    journal_info_prompt = "【期刊】：请根据文献内容提取其发表的期刊名称和发表时间，格式请严格遵守“期刊名. 年份 月份”（例如：Gastroenterology. 2021 October）。如果无法找到，请填写“未知”。"
         
-    # =====================================================================
-    # ---【逻辑修改】---
-    # 【中文注释】删除了对“经典五段式”的判断，统一为“泛读模式”
     if mode == '泛读模式':
-    # ---【逻辑修改结束】---
-    # =====================================================================
         prompt = f"""
 你是一位专业的文献筛选专家，请对这篇论文进行快速泛读分析。
 目标：快速判断文献的相关性和核心价值。
@@ -168,6 +167,7 @@ def call_llm_for_mode(pdf_text, api_key, mode, language, custom_prompt=None):
 
 {prompt_instruction}
 
+{journal_info_prompt}
 【研究问题】：这篇文章具体想回答什么问题？
 【核心论点】：作者最核心的观点是什么？（一句话总结）
 【研究方法】：这是什么类型的研究？
@@ -186,8 +186,9 @@ def call_llm_for_mode(pdf_text, api_key, mode, language, custom_prompt=None):
 
 {lang_instruction}
 
-请严格按照以下六个维度进行详细分析（每个维度至少3-5句话，不要在答案中重复问题本身）：
+{prompt_instruction}
 
+{journal_info_prompt}
 【研究背景与缺口】：详细阐述研究背景和空白
 【研究设计与方法】：包括样本量、分组、统计方法等
 【主要结果与数据】：关键数据和图表引用
@@ -202,11 +203,10 @@ def call_llm_for_mode(pdf_text, api_key, mode, language, custom_prompt=None):
         fields = INTENSIVE_FIELDS
         
     elif mode == '自定义模式':
-        # 使用用户提供的自定义提示，如果没有则使用默认模板
-        template_to_use = custom_prompt if custom_prompt and custom_prompt.strip() else CUSTOM_TEMPLATE
-
+        # 【中文注释】自定义模式也强制加入期刊提取指令
         prompt = f"""
-{template_to_use}
+{CUSTOM_TEMPLATE}
+{journal_info_prompt}
 
 {lang_instruction}
 
@@ -214,7 +214,10 @@ def call_llm_for_mode(pdf_text, api_key, mode, language, custom_prompt=None):
 论文内容：
 {pdf_text[:30000]}
 """
-        fields = re.findall(r'【([^】]+)】', template_to_use)
+        # 解析模板字段并手动加入“期刊”
+        fields = re.findall(r'【([^】]+)】', CUSTOM_TEMPLATE)
+        if "期刊" not in fields:
+            fields.append("期刊")
     else:
         return None, None
     
@@ -288,10 +291,10 @@ def parse_llm_output(llm_text, fields):
     return result_dict
 
 # =============================================================================
-# --- 后续代码保持不变... ---
+# --- 处理单个PDF ---
 # =============================================================================
 
-def process_single_pdf(pdf_file, api_key, mode, language, custom_prompt=None):
+def process_single_pdf(pdf_file, api_key, mode, language):
     """处理单个PDF文件"""
     filename = pdf_file.filename
     print(f"📄 处理文件: {filename}")
@@ -306,7 +309,7 @@ def process_single_pdf(pdf_file, api_key, mode, language, custom_prompt=None):
             print(f"  ⚠️ 文本内容太少，跳过")
             return None
         
-        llm_output, fields = call_llm_for_mode(text, api_key, mode, language, custom_prompt)
+        llm_output, fields = call_llm_for_mode(text, api_key, mode, language)
         
         if fields:
             result = parse_llm_output(llm_output, fields)
@@ -324,6 +327,10 @@ def process_single_pdf(pdf_file, api_key, mode, language, custom_prompt=None):
     finally:
         if os.path.exists(pdf_path):
             os.unlink(pdf_path)
+
+# =============================================================================
+# --- Flask应用 ---
+# =============================================================================
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
@@ -350,12 +357,6 @@ def analyze_pdfs():
     print(f"  文件数量: {len(pdf_files)}")
     print(f"  分析模式: {mode}")
     print(f"  输出语言: {language}")
-    if mode == '自定义模式':
-        print(f"  自定义提示: {custom_prompt[:100]}..." if len(custom_prompt) > 100 else f"  自定义提示: {custom_prompt}")
-    if api_key:
-        print(f"  API密钥: {api_key[:8]}...{api_key[-4:]}")
-    else:
-        print("  ⚠️ API密钥为空！")
     print("="*50 + "\n")
     
     if not api_key:
@@ -377,7 +378,7 @@ def analyze_pdfs():
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for pdf_file in pdf_files:
-            future = executor.submit(process_single_pdf, pdf_file, api_key, mode, language, custom_prompt)
+            future = executor.submit(process_single_pdf, pdf_file, api_key, mode, language)
             futures.append(future)
         
         for future in as_completed(futures):
@@ -398,13 +399,25 @@ def analyze_pdfs():
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
             df = pd.DataFrame(all_results)
             
+            # =====================================================================
+            # ---【列顺序优化】---
+            # 【中文注释】在此处重新排列列顺序：文件名 -> 期刊 -> 分析时间 -> 其他内容
+            # =====================================================================
             if '文件名' in df.columns:
                 cols = df.columns.tolist()
                 cols.remove('文件名')
                 cols.insert(0, '文件名')
+                
+                if '期刊' in df.columns:
+                    cols.remove('期刊')
+                    cols.insert(1, '期刊')
+                
                 if '分析时间' in df.columns:
                     cols.remove('分析时间')
-                    cols.insert(1, '分析时间')
+                    # 确定“分析时间”应该放的位置，如果有期刊则放在第3列（索引2）
+                    target_idx = 2 if '期刊' in df.columns else 1
+                    cols.insert(target_idx, '分析时间')
+                
                 df = df[cols]
             
             df.to_excel(tmp.name, index=False, engine='openpyxl')
@@ -452,4 +465,3 @@ def internal_error(error):
 if __name__ == '__main__':
     # 本地测试
     app.run(host='0.0.0.0', port=5000, debug=True)
-
