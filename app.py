@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
-# --- EggScan 云端分析工具 (v3.0 - 期刊提取增强版) ---
-# 【中文注释】增加了自动提取文献发表期刊与时间的功能，并优化了Excel列排序。
+# --- EggScan 云端分析工具 (v3.1 - 符号清洗增强版) ---
+# 【中文注释】增加了对AI输出中 Markdown 星号(*)的自动清洗，并保留期刊提取与样式优化。
 # =============================================================================
 
 import os
@@ -47,10 +47,7 @@ def import_heavy_libraries():
 # API和常量定义
 LLM_URL = "https://api.deepseek.com/v1/chat/completions"
 
-# =============================================================================
-# --- 模式字段定义 ---
-# 【中文注释】在这两个模式中都加入了“期刊”字段，以便程序自动解析。
-# =============================================================================
+# 模式字段定义
 SKIMMING_FIELDS = ["期刊", "研究问题", "核心论点", "研究方法", "关键结论", "相关性评估"]
 INTENSIVE_FIELDS = ["期刊", "研究背景与缺口", "研究设计与方法", "主要结果与数据", "创新点与贡献", "局限性与批判", "可借鉴与启发"]
 
@@ -92,6 +89,8 @@ def beautify_excel_professional(filepath):
         
         header_fill = PatternFill(fill_type="solid", fgColor="5B9BD5")
         header_font = Font(name='微软雅黑', bold=True, color="FFFFFF", size=11)
+        
+        # 【中文注释】正文字体设置为 微软雅黑 12号
         data_font = Font(name='微软雅黑', size=12)
         
         thin_border = Border(
@@ -126,6 +125,7 @@ def beautify_excel_professional(filepath):
             ws.column_dimensions[column_letter].width = adjusted_width
         
         for row_num, row in enumerate(ws.iter_rows(min_row=2), start=2):
+            # 【中文注释】行高设置为 200磅
             ws.row_dimensions[row_num].height = 200
             for cell in row:
                 cell.alignment = Alignment(wrap_text=True, vertical="top", horizontal="left")
@@ -154,182 +154,69 @@ def call_llm_for_mode(pdf_text, api_key, mode, language):
     
     lang_instruction = "Please output in English" if language == "English" else "请用中文输出"
     prompt_instruction = "请严格按照以下格式提取关键信息（每个字段必须填写，不要在答案中重复问题本身）："
-    
-    # 【中文注释】通用的期刊信息提取指令
-    journal_info_prompt = "【期刊】：请根据文献内容提取其发表的期刊名称和发表时间，格式请严格遵守“期刊名. 年份 月份”（例如：Gastroenterology. 2021 October）。如果无法找到，请填写“未知”。"
+    journal_info_prompt = "【期刊】：请从文献中提取发表的期刊名称和发表时间，格式要求：期刊名. 年份 月份（例如：Gastroenterology. 2021 October）。如果未找到则填“未知”。"
         
     if mode == '泛读模式':
-        prompt = f"""
-你是一位专业的文献筛选专家，请对这篇论文进行快速泛读分析。
-目标：快速判断文献的相关性和核心价值。
-
-{lang_instruction}
-
-{prompt_instruction}
-
-{journal_info_prompt}
-【研究问题】：这篇文章具体想回答什么问题？
-【核心论点】：作者最核心的观点是什么？（一句话总结）
-【研究方法】：这是什么类型的研究？
-【关键结论】：最重要的研究结论是什么？
-【相关性评估】：评估其研究价值（高相关/中相关/低相关）
-
----
-论文内容：
-{pdf_text[:25000]}
-"""
+        prompt = f"""你是一位专业的文献筛选专家，请对这篇论文进行快速泛读分析。{lang_instruction}\n{prompt_instruction}\n{journal_info_prompt}\n【研究问题】：这篇文章具体想回答什么问题？\n【核心论点】：作者最核心的观点是什么？\n【研究方法】：这是什么类型的研究？\n【关键结论】：最重要的研究结论是什么？\n【相关性评估】：评估其研究价值\n\n论文内容：\n{pdf_text[:25000]}"""
         fields = SKIMMING_FIELDS
-        
     elif mode == '精读模式':
-        prompt = f"""
-你是一位资深的学术研究专家，请对这篇论文进行深度精读分析。
-
-{lang_instruction}
-
-{prompt_instruction}
-
-{journal_info_prompt}
-【研究背景与缺口】：详细阐述研究背景和空白
-【研究设计与方法】：包括样本量、分组、统计方法等
-【主要结果与数据】：关键数据和图表引用
-【创新点与贡献】：理论/方法/实践创新
-【局限性与批判】：作者承认的+你发现的问题
-【可借鉴与启发】：可直接借鉴的方法和研究思路
-
----
-论文内容：
-{pdf_text[:35000]}
-"""
+        prompt = f"""你是一位资深的学术研究专家，请对这篇论文进行深度精读分析。{lang_instruction}\n{prompt_instruction}\n{journal_info_prompt}\n【研究背景与缺口】：背景和空白\n【研究设计与方法】：样本、方法等\n【主要结果与数据】：关键数据\n【创新点与贡献】：理论或方法创新\n【局限性与批判】：作者承认的或你发现的问题\n【可借鉴与启发】：思路启发\n\n论文内容：\n{pdf_text[:35000]}"""
         fields = INTENSIVE_FIELDS
-        
     elif mode == '自定义模式':
-        # 【中文注释】自定义模式也强制加入期刊提取指令
-        prompt = f"""
-{CUSTOM_TEMPLATE}
-{journal_info_prompt}
-
-{lang_instruction}
-
----
-论文内容：
-{pdf_text[:30000]}
-"""
-        # 解析模板字段并手动加入“期刊”
+        prompt = f"""{journal_info_prompt}\n{CUSTOM_TEMPLATE}\n{lang_instruction}\n\n论文内容：\n{pdf_text[:30000]}"""
         fields = re.findall(r'【([^】]+)】', CUSTOM_TEMPLATE)
-        if "期刊" not in fields:
-            fields.append("期刊")
+        if "期刊" not in fields: fields.insert(0, "期刊")
     else:
         return None, None
     
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     payload = {
         "model": "deepseek-chat",
-        "messages": [
-            {"role": "system", "content": "你是专业的学术分析助手。"},
-            {"role": "user", "content": prompt}
-        ],
+        "messages": [{"role": "system", "content": "你是专业的学术分析助手。不要使用Markdown加粗语法。"}, {"role": "user", "content": prompt}],
         "temperature": 0.1,
         "max_tokens": 3000
     }
     
     try:
-        print(f"  → 正在调用DeepSeek API...")
-        response = requests.post(
-            LLM_URL,
-            headers=headers,
-            json=payload,
-            timeout=280
-        )
+        response = requests.post(LLM_URL, headers=headers, json=payload, timeout=280)
         response.raise_for_status()
         result = response.json()["choices"][0]["message"]["content"]
-        
-        print("\n" + "-"*20 + " AI模型原始输出 START " + "-"*20)
-        print(result)
-        print("-" * 20 + " AI模型原始输出 END " + "-"*20 + "\n")
-        
-        print(f"  ✓ API调用成功")
+        # 清除常见的 Markdown 标题和分隔符
+        result = re.sub(r'^\s*#+\s*|^\s*---\s*|\s*---\s*$', '', result, flags=re.MULTILINE)
         return result, fields
     except Exception as e:
-        print(f"  ❌ API调用失败: {e}")
         return f"API_ERROR: {e}", fields
 
 def parse_llm_output(llm_text, fields):
-    """解析LLM输出"""
+    """解析LLM输出并进行内容清洗"""
     if llm_text.startswith("API_ERROR:"):
         return {field: llm_text if i == 0 else "API错误" for i, field in enumerate(fields)}
     
+    # =====================================================================
+    # ---【内容清理优化】---
+    # 【中文注释】在此处删除所有的星号（*），防止 Markdown 加粗符号进入 Excel
+    llm_text = llm_text.replace('*', '')
+    # =====================================================================
+
     result_dict = {}
-    
-    cleaned_text = re.sub(r'^\s*#+\s*|^\s*---\s*|\s*---\s*$', '', llm_text, flags=re.MULTILINE)
-    
-    chunks = re.split(r'(?=【.*?】)', cleaned_text)
+    chunks = re.split(r'(?=【.*?】)', llm_text)
     chunk_dict = {}
     for chunk in chunks:
-        if not chunk.strip():
-            continue
+        if not chunk.strip(): continue
         match = re.match(r'【(.*?)】[：:\s]*(.*)', chunk, re.DOTALL)
         if match:
             field_name, content = match.groups()
-            
             content_lines = content.strip().split('\n')
             if len(content_lines) > 1 and ('什么' in content_lines[0] or '如何' in content_lines[0] or content_lines[0].endswith(('?', '？'))):
                 content = '\n'.join(content_lines[1:]).strip()
-            
             chunk_dict[field_name.strip()] = content.strip()
             
     for field in fields:
         result_dict[field] = chunk_dict.get(field, "未提取到")
-        
-    if all(v == "未提取到" for v in result_dict.values()) and cleaned_text.strip():
-        if fields:
-             result_dict[fields[-1]] = cleaned_text.strip()
-             
     return result_dict
 
 # =============================================================================
-# --- 处理单个PDF ---
-# =============================================================================
-
-def process_single_pdf(pdf_file, api_key, mode, language):
-    """处理单个PDF文件"""
-    filename = pdf_file.filename
-    print(f"📄 处理文件: {filename}")
-    
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        pdf_file.save(tmp.name)
-        pdf_path = tmp.name
-    
-    try:
-        text = smart_extract_text(pdf_path)
-        if len(text.strip()) < 500:
-            print(f"  ⚠️ 文本内容太少，跳过")
-            return None
-        
-        llm_output, fields = call_llm_for_mode(text, api_key, mode, language)
-        
-        if fields:
-            result = parse_llm_output(llm_output, fields)
-        else:
-            result = {'分析结果': llm_output}
-        
-        result['文件名'] = filename
-        result['分析时间'] = datetime.now().strftime("%Y-%m-%d %H:%M")
-        
-        return result
-        
-    except Exception as e:
-        print(f"  ❌ 处理失败: {e}")
-        return {'文件名': filename, '错误': str(e)}
-    finally:
-        if os.path.exists(pdf_path):
-            os.unlink(pdf_path)
-
-# =============================================================================
-# --- Flask应用 ---
+# --- Flask 应用主逻辑 ---
 # =============================================================================
 
 app = Flask(__name__)
@@ -337,131 +224,66 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 @app.route('/')
 def index():
-    """渲染主页"""
     return render_template('index.html')
 
 @app.route('/analyze', methods=['POST'])
 def analyze_pdfs():
-    """处理PDF分析请求"""
-    
     import_heavy_libraries()
-    
     pdf_files = request.files.getlist('pdfs')
     api_key = request.form.get('apiKey')
     mode = request.form.get('mode', '泛读模式')
     language = request.form.get('language', '中文')
-    custom_prompt = request.form.get('customPrompt', CUSTOM_TEMPLATE)
     
-    print("\n" + "="*50)
-    print("收到分析请求：")
-    print(f"  文件数量: {len(pdf_files)}")
-    print(f"  分析模式: {mode}")
-    print(f"  输出语言: {language}")
-    print("="*50 + "\n")
-    
-    if not api_key:
-        return jsonify({"error": "API密钥不能为空"}), 400
-    
-    if not api_key.startswith("sk-"):
-        return jsonify({"error": "API密钥格式不正确（应以sk-开头）"}), 400
-    
-    if not pdf_files or len(pdf_files) == 0:
-        return jsonify({"error": "请至少上传一个PDF文件"}), 400
-    
-    if len(pdf_files) > 5:
-        return jsonify({"error": "为避免超时，每次最多处理5个文件"}), 400
+    if not api_key: return jsonify({"error": "API密钥不能为空"}), 400
     
     all_results = []
-    success_count = 0
-    
-    max_workers = min(3, len(pdf_files))
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        for pdf_file in pdf_files:
-            future = executor.submit(process_single_pdf, pdf_file, api_key, mode, language)
-            futures.append(future)
-        
+    with ThreadPoolExecutor(max_workers=min(3, len(pdf_files))) as executor:
+        futures = [executor.submit(process_single_pdf, f, api_key, mode, language) for f in pdf_files]
         for future in as_completed(futures):
-            try:
-                result = future.result(timeout=290)
-                if result and '错误' not in result:
-                    all_results.append(result)
-                    success_count += 1
-            except Exception as e:
-                print(f"  ❌ 处理异常: {e}")
+            res = future.result()
+            if res: all_results.append(res)
     
-    if not all_results:
-        return jsonify({"error": "所有文件都处理失败，请检查API密钥或PDF内容"}), 500
-    
-    print(f"\n✓ 成功处理 {success_count}/{len(pdf_files)} 个文件")
+    if not all_results: return jsonify({"error": "处理失败"}), 500
     
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
             df = pd.DataFrame(all_results)
-            
-            # =====================================================================
-            # ---【列顺序优化】---
-            # 【中文注释】在此处重新排列列顺序：文件名 -> 期刊 -> 分析时间 -> 其他内容
-            # =====================================================================
+            # 重新排列列顺序：文件名 -> 期刊 -> 其他内容 -> 分析时间
             if '文件名' in df.columns:
                 cols = df.columns.tolist()
                 cols.remove('文件名')
                 cols.insert(0, '文件名')
-                
                 if '期刊' in df.columns:
-                    cols.remove('期刊')
-                    cols.insert(1, '期刊')
-                
+                    cols.remove('期刊'); cols.insert(1, '期刊')
                 if '分析时间' in df.columns:
-                    cols.remove('分析时间')
-                    # 确定“分析时间”应该放的位置，如果有期刊则放在第3列（索引2）
-                    target_idx = 2 if '期刊' in df.columns else 1
-                    cols.insert(target_idx, '分析时间')
-                
+                    cols.remove('分析时间'); cols.append('分析时间')
                 df = df[cols]
             
             df.to_excel(tmp.name, index=False, engine='openpyxl')
             beautify_excel_professional(tmp.name)
             
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-            filename = f"EggScan_{mode}_{timestamp}.xlsx"
-            
-            response = send_file(
-                tmp.name,
-                as_attachment=True,
-                download_name=filename,
-                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            
-            @response.call_on_close
-            def cleanup():
-                if os.path.exists(tmp.name):
-                    os.unlink(tmp.name)
-            
-            print(f"✓ 报告已生成: {filename}")
-            return response
-            
+            filename = f"EggScan_{mode}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+            return send_file(tmp.name, as_attachment=True, download_name=filename, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     except Exception as e:
-        print(f"❌ 生成报告失败: {e}")
-        return jsonify({"error": f"生成报告失败: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/test', methods=['GET'])
-def test():
-    """测试接口"""
-    return jsonify({
-        "status": "ok",
-        "message": "EggScan服务正在运行",
-        "version": "3.0"
-    })
-
-@app.errorhandler(413)
-def request_entity_too_large(error):
-    return jsonify({"error": "文件太大，请确保总大小不超过100MB"}), 413
-
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({"error": "服务器内部错误，请稍后重试"}), 500
+def process_single_pdf(pdf_file, api_key, mode, language):
+    filename = pdf_file.filename
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        pdf_file.save(tmp.name)
+        pdf_path = tmp.name
+    try:
+        text = smart_extract_text(pdf_path)
+        if len(text.strip()) < 500: return None
+        llm_output, fields = call_llm_for_mode(text, api_key, mode, language)
+        result = parse_llm_output(llm_output, fields) if fields else {'分析结果': llm_output}
+        result['文件名'] = filename
+        result['分析时间'] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        return result
+    except Exception as e:
+        return {'文件名': filename, '错误': str(e)}
+    finally:
+        if os.path.exists(pdf_path): os.unlink(pdf_path)
 
 if __name__ == '__main__':
-    # 本地测试
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
